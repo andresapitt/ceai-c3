@@ -10,7 +10,9 @@
 **Proceed to deploy, with two conditions.** The assistant goes live on Vercel. It is not linked from Instagram or Facebook until both conditions are met.
 
 1. ~~The FAQ sheet is uploaded and `FAQ_SHEET_ID` is set.~~ **Met.** 35 rows live and verified answering.
-2. **Still open.** Rate limiting is added before any campaign drives traffic to it.
+2. ~~Rate limiting is added before any campaign drives traffic to it.~~ **Met.** 10 a minute and 50 an hour per visitor, 150 a minute overall. Best effort rather than exact, and Nadia has written down why in her gap list.
+
+**Both conditions are now met. The assistant may be linked from Instagram and Facebook.**
 
 ### Post-deployment note
 
@@ -80,8 +82,8 @@ The static page processed nothing. The assistant processes whatever a visitor ty
 |---|---|
 | What is processed | The message text, plus the last six turns for context |
 | Where it goes | Google (Gemini API), as a processor, disclosed in the panel in plain words |
-| Stored by us | Nothing. No log, no database, no cookie. Refresh and the conversation is gone. The site writes one `localStorage` value, `au-theme`, holding `light` or `dark`: a display preference, not personal data, never transmitted |
-| Lawful basis | Legitimate interest in answering an enquiry, Article 6(1)(f). Minimal, because we ask for nothing and keep nothing |
+| Stored by us | No conversation is logged or stored anywhere. Refresh and it is gone. Two things do exist: one `localStorage` value, `au-theme`, holding `light` or `dark`, which never leaves the browser; and a rate-limiting counter held in server memory, keyed by a **salted hash of the IP address**, never the address itself. The salt is generated in memory at start and never written down, so the value cannot be reversed and does not survive a restart. Entries expire after an hour |
+| Lawful basis | Legitimate interest, Article 6(1)(f): answering an enquiry, and protecting the service from abuse. An IP address is personal data, which is why we hash it rather than hold it, keep it for an hour at most, and use it for nothing but counting requests |
 | Special category data | We never ask. Someone could still volunteer health information in a free-text box, for instance asking whether a workshop suits a memory condition. We do not store it, which is the strongest mitigation available |
 | Data subject rights | Nothing to access, rectify or erase, because nothing is retained |
 | Transfers | Outside the EEA, to Google. Named in the panel. Worth a line in the privacy notice, which we do not currently have |
@@ -100,7 +102,7 @@ The assistant will be wrong sometimes. What matters is what it does when it does
 |---|---|---|
 | The model call fails on first deploy because the model name is wrong | Assistant shows the phone number to every visitor. Detectable in one request via the selftest endpoint | Whoever deploys |
 | FAQ sheet never gets uploaded | Assistant cannot answer the most common question. This is condition 1 | Coordination |
-| Someone uses it as a free general-purpose model | Gemini quota spent on nothing. No rate limit today | Condition 2 |
+| Someone uses it as a free general-purpose model | Gemini quota spent on nothing. Now capped per visitor and per instance, though a flood spread across instances would still get through | Accepted |
 | A visitor types health information into the box | We store nothing, so exposure is limited to Google as processor. Cannot be eliminated while a free-text box exists | Accepted |
 | Enquiry volume rises and the phone is not covered | Still the worst outcome, and the assistant makes it more likely by working well. Unchanged from the last plan, still unowned | Coordination |
 | The sheets stop being shared publicly | Assistant and site both show the phone number. Correct behaviour, no catalogue | Coordination |

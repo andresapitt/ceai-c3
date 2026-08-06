@@ -13,11 +13,81 @@
  * Nothing about a conversation is logged or stored. See criterion 21.
  */
 
+import { createHash, randomBytes } from 'node:crypto';
+
 const COURSES_SHEET = '1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM';
 const FAQ_SHEET = process.env.FAQ_SHEET_ID || '';
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const PHONE = '351 3 261002';
 const WA = 'https://wa.me/5493513261002';
+
+/* ------------------------------------------------------------ rate limit
+ *
+ * Best effort, and worth being precise about what that means. Vercel runs
+ * several independent instances, each with its own memory, and a cold start
+ * wipes the counters. So a determined attacker spread across instances gets
+ * more than the numbers below. What this reliably stops is the realistic
+ * case: one script, one browser tab, or one person hammering the box, which
+ * is what would quietly drain the Gemini quota.
+ *
+ * A shared store (Vercel KV or Upstash) would make the limit exact. It also
+ * adds a paid service and another credential for an organisation with no
+ * engineer, which is a poor trade until the traffic justifies it.
+ *
+ * Privacy: the raw IP is never stored. It is hashed with a salt generated
+ * fresh in memory at instance start and never written down, so the stored
+ * value cannot be reversed to an address and does not survive a restart.
+ */
+const SALT = randomBytes(16).toString('hex');
+const LIMITS = [
+  { windowMs: 60 * 1000, max: 10, name: 'minute' },
+  { windowMs: 60 * 60 * 1000, max: 50, name: 'hour' }
+];
+const GLOBAL_PER_MINUTE = 150;
+const MAX_TRACKED = 5000;
+
+const BUCKETS = new Map();
+let globalHits = [];
+
+function clientKey(req) {
+  const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const ip = fwd || req.headers['x-real-ip'] || 'unknown';
+  return createHash('sha256').update(SALT + ip).digest('hex').slice(0, 16);
+}
+
+function rateLimit(req) {
+  const now = Date.now();
+
+  globalHits = globalHits.filter((t) => now - t < 60 * 1000);
+  if (globalHits.length >= GLOBAL_PER_MINUTE) {
+    return { limited: true, retryAfter: 60, scope: 'global' };
+  }
+
+  const key = clientKey(req);
+  const longest = LIMITS[LIMITS.length - 1].windowMs;
+  const hits = (BUCKETS.get(key) || []).filter((t) => now - t < longest);
+
+  for (const l of LIMITS) {
+    if (hits.filter((t) => now - t < l.windowMs).length >= l.max) {
+      BUCKETS.set(key, hits);
+      return { limited: true, retryAfter: Math.ceil(l.windowMs / 1000), scope: l.name };
+    }
+  }
+
+  hits.push(now);
+  BUCKETS.set(key, hits);
+  globalHits.push(now);
+
+  /* Drop keys that have gone quiet, so a long-running instance cannot grow
+     its memory without bound. */
+  if (BUCKETS.size > MAX_TRACKED) {
+    for (const [k, v] of BUCKETS) {
+      if (!v.length || now - v[v.length - 1] > longest) BUCKETS.delete(k);
+      if (BUCKETS.size <= MAX_TRACKED * 0.8) break;
+    }
+  }
+  return { limited: false };
+}
 
 /* Any shape a fee amount could take, in Spanish or English. Deliberately
    broad: a false positive costs one replaced answer, a false negative
@@ -215,6 +285,39 @@ Sos un asistente automático, no una persona, y el visitante ya lo sabe porque s
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
+  /* Applies to the selftest too. It reads two sheets and lists models, so it
+     is not a free endpoint either. */
+  const gate = rateLimit(req);
+  if (gate.limited) {
+    /* Answer in the visitor's language. Reading the body here is best effort:
+       if it is malformed we fall back to Spanish rather than failing. */
+    let lim = 'es';
+    try {
+      const b = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      if (b && b.lang === 'en') lim = 'en';
+    } catch (e) { /* keep Spanish */ }
+
+    const MSG = {
+      es: {
+        global: `Estamos recibiendo muchas consultas en este momento. Probá de nuevo en un minuto, o escribinos por WhatsApp al ${PHONE} y te respondemos.`,
+        user: `Hiciste varias preguntas seguidas. Esperá un momento y volvé a intentar, o escribinos por WhatsApp al ${PHONE} y te atiende una persona.`
+      },
+      en: {
+        global: `We are getting a lot of questions right now. Try again in a minute, or message us on WhatsApp at ${PHONE} and we will reply.`,
+        user: `You have asked several questions in a row. Wait a moment and try again, or message us on WhatsApp at ${PHONE} and a person will help you.`
+      }
+    };
+
+    res.setHeader('Retry-After', String(gate.retryAfter));
+    return res.status(429).json({
+      error: 'rate_limited',
+      scope: gate.scope,
+      retryAfter: gate.retryAfter,
+      reply: MSG[lim][gate.scope === 'global' ? 'global' : 'user'],
+      handoff: true
+    });
+  }
+
   /* Deployment check: confirms the key is present and lists the models it can
      actually reach. Never returns the key itself. */
   if (req.method === 'GET' && req.query && req.query.selftest === '1') {
@@ -250,7 +353,14 @@ export default async function handler(req, res) {
       } catch (e) { models = ['could not list models: ' + String(e.message || e)]; }
     }
     return res.status(200).json({
-      keyPresent: hasKey, configuredModel: MODEL, availableModels: models, sheets, error
+      keyPresent: hasKey, configuredModel: MODEL, availableModels: models, sheets, error,
+      rateLimit: {
+        perMinute: LIMITS[0].max,
+        perHour: LIMITS[1].max,
+        globalPerMinute: GLOBAL_PER_MINUTE,
+        scope: 'per instance, in memory, best effort',
+        tracked: BUCKETS.size
+      }
     });
   }
 
