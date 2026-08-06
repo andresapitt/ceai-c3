@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>aulauniversitaria | Actividades para mayores de 50 años en Córdoba</title>
+<meta name="description" content="Talleres de idiomas, arte, tecnología, filosofía y más para personas de más de 50 años. Campus de la Universidad Blas Pascal, Argüello, Córdoba. La primera clase es gratis.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23C41230'>a</text></svg>">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+
+<a class="skip" href="#buscador">Ir al buscador de talleres</a>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="#inicio" aria-label="aulauniversitaria, inicio">
+      <img src="assets/logo.jpg" alt="aulauniversitaria" class="brand-mark" width="716" height="98">
+      <span class="brand-tag">cosa de grandes</span>
+    </a>
+
+    <nav class="site-nav" aria-label="Principal">
+      <a href="#buscador" data-i18n="nav.courses">Talleres</a>
+      <a href="#semana" data-i18n="nav.week">La semana</a>
+      <a href="#comollega" data-i18n="nav.how">Cómo empezar</a>
+      <a href="#contacto" data-i18n="nav.contact">Contacto</a>
+    </nav>
+
+    <div class="header-tools">
+      <button type="button" id="text-size" class="tool" aria-pressed="false">
+        <span aria-hidden="true">A+</span>
+        <span class="sr-only" data-i18n="tool.bigger">Agrandar el texto</span>
+      </button>
+      <button type="button" id="lang" class="tool" data-i18n="tool.lang">EN</button>
+    </div>
+  </div>
+</header>
+
+<main id="inicio">
+
+  <!-- ===== HERO ===== -->
+  <section class="hero">
+    <div class="wrap hero-inner">
+      <p class="kicker" data-i18n="hero.kicker">Asociación Civil Promover + Universidad Blas Pascal</p>
+      <h1 data-i18n="hero.title">Elegí un taller. La primera clase es gratis.</h1>
+      <p class="lead" data-i18n="hero.lead">Idiomas, arte, filosofía, tecnología, bridge y golf. Cuarenta y siete propuestas en el campus de la Universidad Blas Pascal, en Argüello, y también por videollamada. Podés probar cualquier taller sin pagar nada antes de decidir.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#comollega" data-i18n="hero.cta1">Quiero probar una clase</a>
+        <a class="btn btn-ghost" href="#buscador" data-i18n="hero.cta2">Ver los talleres</a>
+      </div>
+      <ul class="hero-facts">
+        <li><strong id="fact-courses">47</strong> <span data-i18n="hero.fact1">propuestas 2026</span></li>
+        <li><strong id="fact-teachers">27</strong> <span data-i18n="hero.fact2">profesores</span></li>
+        <li><strong data-i18n="hero.fact3v">2 de marzo</strong> <span data-i18n="hero.fact3">empiezan las clases</span></li>
+        <li><strong data-i18n="hero.fact4v">Todo el año</strong> <span data-i18n="hero.fact4">inscripción abierta</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== COURSE FINDER ===== -->
+  <section id="buscador" class="section">
+    <div class="wrap">
+      <h2 data-i18n="find.title">Buscá tu taller</h2>
+      <p class="section-lead" data-i18n="find.lead">Escribí lo que te interesa o filtrá por día. Los datos se leen en vivo de la planilla de la coordinación cada vez que abrís esta página.</p>
+
+      <div class="filters" role="search">
+        <div class="field field-grow">
+          <label for="q" data-i18n="find.search">Buscar por nombre, tema o profesor</label>
+          <input type="search" id="q" autocomplete="off" placeholder="italiano, pintura, bridge...">
+        </div>
+        <div class="field">
+          <label for="f-day" data-i18n="find.day">Día</label>
+          <select id="f-day"><option value="" data-i18n="find.any">Cualquiera</option></select>
+        </div>
+        <div class="field">
+          <label for="f-cat" data-i18n="find.cat">Área</label>
+          <select id="f-cat"><option value="" data-i18n="find.any">Cualquiera</option></select>
+        </div>
+        <div class="field">
+          <label for="f-fmt" data-i18n="find.fmt">Modalidad</label>
+          <select id="f-fmt"><option value="" data-i18n="find.any">Cualquiera</option></select>
+        </div>
+        <button type="button" id="clear" class="btn btn-ghost btn-sm" data-i18n="find.clear">Limpiar</button>
+      </div>
+
+      <p id="count" class="count" role="status" aria-live="polite"></p>
+
+      <div id="results" class="cards"></div>
+
+      <div id="state" class="state" hidden></div>
+    </div>
+  </section>
+
+  <!-- ===== WEEK VIEW ===== -->
+  <section id="semana" class="section section-alt">
+    <div class="wrap">
+      <h2 data-i18n="week.title">La semana de un vistazo</h2>
+      <p class="section-lead" data-i18n="week.lead">Todo lo que pasa cada día, ordenado por hora. Útil si ya sabés qué tarde tenés libre.</p>
+      <div id="week" class="week"></div>
+    </div>
+  </section>
+
+  <!-- ===== HOW TO START ===== -->
+  <section id="comollega" class="section">
+    <div class="wrap">
+      <h2 data-i18n="how.title">Cómo empezar, en tres pasos</h2>
+      <ol class="steps">
+        <li>
+          <span class="step-n" aria-hidden="true">1</span>
+          <h3 data-i18n="how.s1t">Elegí un taller que te guste</h3>
+          <p data-i18n="how.s1b">Usá el buscador de arriba. Fijate el día y la hora que te queden cómodos.</p>
+        </li>
+        <li>
+          <span class="step-n" aria-hidden="true">2</span>
+          <h3 data-i18n="how.s2t">Llamá o escribí por WhatsApp</h3>
+          <p data-i18n="how.s2b">Decinos cuál te interesa y te reservamos un lugar en la próxima clase. Te atiende una persona, no un contestador.</p>
+          <p class="step-actions">
+            <a class="btn btn-primary" href="https://wa.me/5493513261002" rel="noopener" data-i18n="how.wa">Escribir por WhatsApp</a>
+            <a class="btn btn-ghost" href="tel:+5493513261002">351 3 261002</a>
+          </p>
+        </li>
+        <li>
+          <span class="step-n" aria-hidden="true">3</span>
+          <h3 data-i18n="how.s3t">Vení a probar. Esa clase no se paga.</h3>
+          <p data-i18n="how.s3b">Te sentás, mirás cómo trabaja el grupo y después decidís. Si te gusta, te inscribís. Si no, probás otro taller.</p>
+        </li>
+      </ol>
+
+      <div class="notice">
+        <h3 data-i18n="how.feeT">¿Cuánto cuesta?</h3>
+        <p data-i18n="how.feeB">El arancel se paga por mes, del 1 al 15, con un valor bonificado dentro de esa fecha. No publicamos el importe en esta página porque cambia durante el año: preguntanos por teléfono o por WhatsApp y te lo decimos en el momento, sin compromiso.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PRACTICAL ===== -->
+  <section class="section section-alt">
+    <div class="wrap">
+      <h2 data-i18n="info.title">Lo que conviene saber</h2>
+      <div class="info-grid">
+        <div class="info">
+          <h3 data-i18n="info.i1t">Certificado de la Universidad Blas Pascal</h3>
+          <p data-i18n="info.i1b">Al terminar el curso completo recibís un certificado emitido por la UBP. El único requisito es asistir al 80 por ciento de las clases.</p>
+        </div>
+        <div class="info">
+          <h3 data-i18n="info.i2t">Presencial, virtual o las dos</h3>
+          <p data-i18n="info.i2b">Las aulas del campus son híbridas: el mismo taller puede dictarse en el aula y por videollamada al mismo tiempo.</p>
+        </div>
+        <div class="info">
+          <h3 data-i18n="info.i3t">Grupos chicos</h3>
+          <p data-i18n="info.i3b">Un taller abre con un mínimo de diez inscriptos. Si no se llega a ese número, la apertura la deciden el docente y la coordinación.</p>
+        </div>
+        <div class="info">
+          <h3 data-i18n="info.i4t">El calendario</h3>
+          <p data-i18n="info.i4b">Las clases van del 2 de marzo al 30 de noviembre. La inscripción está abierta todo el año: podés sumarte en cualquier mes.</p>
+        </div>
+        <div class="info">
+          <h3 data-i18n="info.i5t">Si faltás</h3>
+          <p data-i18n="info.i5b">Si falta el docente se acuerda día y hora para recuperar la clase. Si faltás vos por un tema personal, el mes se abona igual, porque el docente ya tiene reservada esa hora.</p>
+        </div>
+        <div class="info">
+          <h3 data-i18n="info.i6t">Si querés dejar</h3>
+          <p data-i18n="info.i6b">Avisanos antes por WhatsApp, por mail o en persona. No hay contrato ni permanencia mínima.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CONTACT ===== -->
+  <section id="contacto" class="section">
+    <div class="wrap">
+      <h2 data-i18n="contact.title">Dónde estamos y cómo escribirnos</h2>
+      <div class="contact-grid">
+        <div>
+          <h3 data-i18n="contact.h1">Hablá con una persona</h3>
+          <p class="big-contact">
+            <a href="https://wa.me/5493513261002" rel="noopener">WhatsApp 351 3 261002</a>
+            <a href="tel:+5493513261002">Teléfono 351 3 261002</a>
+            <a href="tel:+5493543536010">Teléfono 3543 536010</a>
+          </p>
+          <p><a href="mailto:info@promover.org.ar">info@promover.org.ar</a></p>
+          <p><a href="mailto:aulauniversitaria@ubp.edu.ar">aulauniversitaria@ubp.edu.ar</a></p>
+        </div>
+        <div>
+          <h3 data-i18n="contact.h2">Dónde son las clases</h3>
+          <p>
+            <span data-i18n="contact.campus">Campus de la Universidad Blas Pascal</span><br>
+            Avda. Donato Álvarez 380<br>
+            Argüello, Córdoba
+          </p>
+          <p>
+            <a href="https://www.instagram.com/aulauniversitaria2020" rel="noopener">Instagram</a> ·
+            <a href="https://www.facebook.com/aulauniversitaria" rel="noopener">Facebook</a> ·
+            <a href="https://promover.org.ar" rel="noopener">promover.org.ar</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p class="foot-brand">aulauniversitaria <span class="foot-tag">cosa de grandes</span></p>
+    <p data-i18n="foot.org">Programa de la Asociación Civil Promover y la Secretaría de Extensión y Relaciones Internacionales de la Universidad Blas Pascal.</p>
+    <p class="datasource" id="datasource"></p>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
