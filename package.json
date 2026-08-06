@@ -1,0 +1,8 @@
+{
+  "name": "aulauniversitaria",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Live course finder and assistant for aulauniversitaria, Cordoba",
+  "type": "module",
+  "engines": { "node": ">=18" }
+}

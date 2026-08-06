@@ -1,0 +1,267 @@
+/* aulauniversitaria assistant, Vercel serverless function.
+ *
+ * Built by Nadia Kaufman to Tomás's 23 criteria.
+ *
+ * Knowledge is NOT in this file. Both sources are fetched over the network on
+ * every request: the course sheet and the FAQ sheet. Nothing is cached, and
+ * there is no fallback copy. If a source is unreachable the assistant says so
+ * and gives the phone number.
+ *
+ * The API key lives in the GEMINI_API_KEY environment variable on Vercel.
+ * It is never in this repository and never reaches the browser.
+ *
+ * Nothing about a conversation is logged or stored. See criterion 21.
+ */
+
+const COURSES_SHEET = '1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM';
+const FAQ_SHEET = process.env.FAQ_SHEET_ID || '';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const PHONE = '351 3 261002';
+const WA = 'https://wa.me/5493513261002';
+
+/* Any shape a fee amount could take, in Spanish or English. Deliberately
+   broad: a false positive costs one replaced answer, a false negative
+   publishes a price the organisation never agreed to. */
+const MONEY = new RegExp([
+  '\\$\\s*\\d',
+  '\\b\\d{1,3}(?:[.,]\\d{3})+\\b',
+  '\\b(?:ars|pesos?|arg)\\s*\\$?\\s*\\d',
+  '\\b\\d{3,}\\s*(?:pesos?|ars)\\b',
+  '\\b(?:cuesta|cuestan|vale|valen|sale|salen|ronda|rondan)\\s+' +
+    '(?:de\\s+|unos\\s+|unas\\s+|alrededor\\s+de\\s+|aproximadamente\\s+)?\\$?\\s*\\d',
+  '\\barancel\\b(?:\\W+\\w+){0,4}?\\W+(?:de\\s+)?\\$?\\s*\\d{3,}',
+  '\\b(?:costs?|price|fee)\\b(?:\\W+\\w+){0,3}?\\W+\\$?\\s*\\d{3,}'
+].join('|'), 'i');
+
+const gviz = (id) =>
+  `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&nocache=${Date.now()}`;
+
+/* Google returns times as a timeofday array or a Date(...) string. Turn any
+   cell back into the text a person would see in the sheet. */
+const pad2 = (n) => (n < 10 ? '0' : '') + n;
+function cellText(cell, type) {
+  if (!cell || cell.v == null || cell.v === '') return '';
+  if (type === 'timeofday' && Array.isArray(cell.v)) return pad2(cell.v[0]) + ':' + pad2(cell.v[1] || 0);
+  if (type === 'datetime' || type === 'date') {
+    if (cell.f) return String(cell.f).trim();
+    const m = /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+))?/.exec(String(cell.v));
+    if (m && m[4] !== undefined) return pad2(+m[4]) + ':' + pad2(+m[5]);
+  }
+  const raw = String(cell.v).trim();
+  if (/^Date\(/.test(raw) && cell.f) return String(cell.f).trim();
+  return raw;
+}
+
+async function readSheet(id) {
+  const res = await fetch(gviz(id), { cache: 'no-store' });
+  if (!res.ok) throw new Error(`sheet ${id} returned HTTP ${res.status}`);
+  const text = await res.text();
+  const payload = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+  const cols = payload.table.cols.map((c) => (c.label || c.id || '').trim());
+  const types = payload.table.cols.map((c) => c.type || 'string');
+  return (payload.table.rows || [])
+    .map((row) => {
+      const o = {};
+      cols.forEach((label, i) => { o[label] = cellText(row.c && row.c[i], types[i]); });
+      return o;
+    })
+    .filter((o) => Object.values(o).some(Boolean));
+}
+
+/* Both sheets become plain text the model reads. Compact, because a long
+   prompt is a slow and expensive prompt, and this runs on every message. */
+function coursesToText(rows) {
+  return rows.map((c) => {
+    const bits = [
+      `ID ${c.id}`,
+      `NOMBRE: ${c.course_name_es || c.course_name}`,
+      c.course_name_es && c.course_name ? `NAME (EN): ${c.course_name}` : '',
+      `AREA: ${c.category}`,
+      c.level ? `NIVEL: ${c.level}` : '',
+      `MODALIDAD: ${c.format}`,
+      c.day ? `DIA: ${c.day} ${c.time_display || c.time_24h || ''}` : '',
+      c.alt_day ? `DIA ALTERNATIVO: ${c.alt_day} ${c.alt_time_24h || ''}` : '',
+      c.frequency ? `FRECUENCIA: ${c.frequency}` : '',
+      c.teacher ? `DOCENTE: ${c.teacher}` : 'DOCENTE: sin asignar',
+      c.period ? `PERIODO: ${c.period}` : '',
+      c.venue ? `LUGAR: ${c.venue}` : '',
+      c.capacity ? `CUPO: ${c.capacity}` : '',
+      c.coursebook ? `LIBRO: ${c.coursebook}` : '',
+      (c.notes_es || c.notes) ? `NOTAS: ${c.notes_es || c.notes}` : ''
+    ].filter(Boolean);
+    return bits.join(' | ');
+  }).join('\n');
+}
+
+function faqToText(rows) {
+  return rows.map((f) =>
+    `[${f.id} ${f.category}] P: ${f.question_es} R: ${f.answer_es}` +
+    (f.question_en ? `\n   Q: ${f.question_en} A: ${f.answer_en}` : '')
+  ).join('\n');
+}
+
+const SYSTEM = `Sos el asistente automático del sitio de aulauniversitaria, el programa de actividades para personas de más de 50 años de la Asociación Civil Promover y la Universidad Blas Pascal, en Argüello, Córdoba, Argentina.
+
+REGLAS QUE NO PODÉS ROMPER:
+
+1. Respondé SOLO con la información de los DATOS que te paso abajo (talleres y preguntas frecuentes). No uses conocimiento general sobre la institución.
+2. Si la respuesta no está en los datos, decilo con franqueza y pasá el contacto: WhatsApp o teléfono ${PHONE}. Nunca deduzcas ni completes con algo verosímil.
+3. NUNCA digas un precio, ni un monto, ni un rango, ni un "aproximadamente", ni compares con otra institución. El arancel NO está publicado en ninguna fuente. Si preguntan cuánto cuesta: explicá que se paga por mes del 1 al 15 con arancel bonificado dentro de esa fecha, que el valor se ajusta durante el año, y que lo dan en el momento por teléfono o WhatsApp al ${PHONE}.
+4. Nunca inventes un taller, un docente, un día, un horario ni un cupo. Si no está en los datos, no existe.
+5. No pidas datos personales: ni nombre, ni mail, ni teléfono, ni edad.
+6. Respondé en el idioma en que te escriben. Si te escriben en español, usá el voseo de Córdoba (podés, tenés, fijate, escribinos).
+7. Sé breve: dos o tres oraciones, o una lista corta. Nada de textos largos.
+8. Cuando hables de un taller, nombralo tal como figura en los datos.
+9. Pasá el contacto cuando quieran inscribirse, pregunten por plata, pregunten algo que no está en los datos, o parezcan trabados.
+10. No prometas resultados ni vacantes. No uses urgencia falsa ni presión.
+
+Sos un asistente automático, no una persona, y el visitante ya lo sabe porque se lo dijimos al abrir el chat.`;
+
+export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+
+  /* Deployment check: confirms the key is present and lists the models it can
+     actually reach. Never returns the key itself. */
+  if (req.method === 'GET' && req.query && req.query.selftest === '1') {
+    const hasKey = Boolean(process.env.GEMINI_API_KEY);
+    let models = null, sheets = null, error = null;
+    try {
+      const [courses, faq] = await Promise.all([
+        readSheet(COURSES_SHEET),
+        FAQ_SHEET ? readSheet(FAQ_SHEET) : Promise.resolve([])
+      ]);
+      sheets = { courses: courses.length, faq: faq.length, faqSheetConfigured: Boolean(FAQ_SHEET) };
+    } catch (e) { error = String(e.message || e); }
+    if (hasKey) {
+      try {
+        const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+          headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY }
+        });
+        const j = await r.json();
+        models = (j.models || [])
+          .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+          .map((m) => m.name.replace('models/', ''));
+      } catch (e) { models = ['could not list models: ' + String(e.message || e)]; }
+    }
+    return res.status(200).json({
+      keyPresent: hasKey, configuredModel: MODEL, availableModels: models, sheets, error
+    });
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(503).json({
+      error: 'not_configured',
+      reply: `El asistente todavía no está configurado. Escribinos por WhatsApp al ${PHONE} y te respondemos.`
+    });
+  }
+
+  try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const message = String(body.message || '').slice(0, 800).trim();
+    const history = Array.isArray(body.history) ? body.history.slice(-6) : [];
+    const lang = body.lang === 'en' ? 'en' : 'es';
+    if (!message) return res.status(400).json({ error: 'empty_message' });
+
+    /* Live read of both sources. No cache, no stored copy. */
+    const [courses, faq] = await Promise.all([
+      readSheet(COURSES_SHEET),
+      FAQ_SHEET ? readSheet(FAQ_SHEET) : Promise.resolve([])
+    ]);
+
+    const context =
+      `=== PREGUNTAS FRECUENTES (${faq.length}) ===\n` +
+      (faq.length ? faqToText(faq) : '(hoja de FAQ no configurada)') +
+      `\n\n=== TALLERES 2026 (${courses.length}) ===\n` + coursesToText(courses) +
+      `\n\n=== CONTACTO ===\nWhatsApp y teléfono ${PHONE}. Otro teléfono 3543 536010. ` +
+      `Mail info@promover.org.ar y aulauniversitaria@ubp.edu.ar. ` +
+      `Campus UBP, Avda. Donato Álvarez 380, Argüello, Córdoba. ` +
+      `Clases del 2 de marzo al 30 de noviembre de 2026. Inscripción abierta todo el año.`;
+
+    const contents = [];
+    history.forEach((h) => {
+      if (h && h.role && h.text) {
+        contents.push({ role: h.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(h.text).slice(0, 800) }] });
+      }
+    });
+    contents.push({
+      role: 'user',
+      parts: [{ text: `DATOS ACTUALES:\n${context}\n\n=== PREGUNTA DEL VISITANTE (respondé en ${lang === 'en' ? 'inglés' : 'español'}) ===\n${message}` }]
+    });
+
+    const upstream = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: { parts: [{ text: SYSTEM }] },
+          generationConfig: { temperature: 0.2, maxOutputTokens: 700, topP: 0.9 },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' }
+          ]
+        })
+      }
+    );
+
+    if (!upstream.ok) {
+      const detail = await upstream.text();
+      /* The model name is the most likely thing to be wrong on a fresh
+         deployment, so the message says how to check it. */
+      return res.status(502).json({
+        error: 'model_error',
+        status: upstream.status,
+        hint: `Comprobá el modelo con /api/chat?selftest=1 (configurado: ${MODEL}).`,
+        detail: detail.slice(0, 400),
+        reply: `Ahora mismo no puedo responderte. Escribinos por WhatsApp al ${PHONE} y te contestamos.`
+      });
+    }
+
+    const data = await upstream.json();
+    const cand = data.candidates && data.candidates[0];
+    const reply = cand && cand.content && cand.content.parts
+      ? cand.content.parts.map((p) => p.text || '').join('').trim()
+      : '';
+
+    if (!reply) {
+      return res.status(200).json({
+        reply: `No pude armar una respuesta para eso. Escribinos por WhatsApp al ${PHONE}.`,
+        handoff: true
+      });
+    }
+
+    /* Last line of defence on the rule that matters most. If a fee amount ever
+       reaches this point, the answer is replaced rather than shown. The model
+       is told not to quote a price; this is what catches it when it does.
+       Tested against 24 cases in pipeline/07-chatbot-build-notes.md. */
+    if (MONEY.test(reply)) {
+      return res.status(200).json({
+        reply: lang === 'en'
+          ? `The fee is paid monthly, between the 1st and the 15th, at a discounted rate within those dates. The amount is adjusted during the year, so we give it to you directly: WhatsApp or call ${PHONE}.`
+          : `El arancel se paga por mes, del 1 al 15, con un valor bonificado dentro de esa fecha. El importe se ajusta durante el año, así que te lo damos en el momento: WhatsApp o teléfono ${PHONE}.`,
+        handoff: true, guardrail: 'fee_amount_blocked'
+      });
+    }
+
+    return res.status(200).json({
+      reply,
+      handoff: /whatsapp|351 3 261002|3513 261002/i.test(reply),
+      sources: { courses: courses.length, faq: faq.length, fetchedAt: new Date().toISOString() }
+    });
+  } catch (err) {
+    return res.status(500).json({
+      error: 'server_error',
+      detail: String(err && err.message ? err.message : err).slice(0, 200),
+      reply: `Tuvimos un problema técnico. Escribinos por WhatsApp al ${PHONE} y te respondemos.`
+    });
+  }
+}
+
+export const config = { runtime: 'nodejs' };
