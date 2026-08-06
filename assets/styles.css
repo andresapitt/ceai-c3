@@ -329,3 +329,25 @@ a:hover{ color:var(--red) }
 :root[data-theme="dark"] .teacher-initials{ background:#2A2724 }
 
 @media (max-width:760px){ .teachers{ grid-template-columns:1fr } }
+
+/* ---------- holiday notice ---------- */
+.holidays{
+  background:#FFF8E9; border:1px solid #E8D9AE; border-left:6px solid #B8860B;
+  border-radius:var(--radius); padding:1.15rem 1.35rem; margin:0 0 1.5rem;
+}
+.holidays h3{ margin:0 0 .35rem; font-size:1.05rem; color:#7A5B04 }
+.holidays-lead{ margin:0 0 .75rem; font-size:.93rem; color:var(--ink-soft) }
+.holidays ul{ list-style:none; margin:0 0 .75rem; padding:0; display:flex; flex-direction:column; gap:.45rem }
+.holidays li{ font-size:.98rem; line-height:1.45 }
+.holidays li strong{ text-transform:capitalize }
+.holidays-name{ color:var(--ink-soft) }
+.holidays-count{
+  display:inline-block; margin-left:.25rem; padding:.1rem .5rem; border-radius:999px;
+  background:#F2E6C6; border:1px solid #E0CB94; color:#6B4E02;
+  font-size:.76rem; font-weight:700; white-space:nowrap;
+}
+.holidays-foot{ margin:0; font-size:.88rem; color:var(--ink-soft) }
+
+:root[data-theme="dark"] .holidays{ background:#241E10; border-color:#4A3D1C; border-left-color:#C79A22 }
+:root[data-theme="dark"] .holidays h3{ color:#E8C972 }
+:root[data-theme="dark"] .holidays-count{ background:#3A3018; border-color:#5A4A24; color:#E8C972 }

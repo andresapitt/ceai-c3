@@ -108,6 +108,46 @@ const MONEY = new RegExp([
    sheet) gets no header detected: the labels come back as A, B, C and every
    field reads as undefined. The bug is silent, because the row count still
    looks nearly right. Forcing headers=1 removes the guess. */
+/* National public holidays. Same rule as the page: this may tell someone a
+   date has no class, never that a date has one. If the API fails, the
+   assistant is told nothing about holidays rather than something wrong. */
+const HOLIDAYS_API = 'https://api.argentinadatos.com/v1/feriados/';
+const TERM_START = '2026-03-02';
+const TERM_END = '2026-11-30';
+const JS_DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function parseISO(s) {
+  const p = String(s || '').split('-');
+  if (p.length !== 3) return null;
+  const d = new Date(+p[0], +p[1] - 1, +p[2]);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+async function readHolidays(courses) {
+  try {
+    const res = await fetch(HOLIDAYS_API + new Date().getFullYear(), { cache: 'no-store' });
+    if (!res.ok) return [];
+    const list = await res.json();
+    if (!Array.isArray(list)) return [];
+
+    const start = parseISO(TERM_START);
+    const end = parseISO(TERM_END);
+    const teach = new Set();
+    courses.forEach((c) => { if (c.day) teach.add(c.day); if (c.alt_day) teach.add(c.alt_day); });
+
+    return list.map((h) => {
+      const d = parseISO(h && h.fecha);
+      if (!d || !h.nombre || d < start || d > end) return null;
+      const day = JS_DAY[d.getDay()];
+      if (!teach.has(day)) return null;
+      const n = courses.filter((c) => c.day === day || c.alt_day === day).length;
+      return n ? { fecha: h.fecha, nombre: String(h.nombre), day, courses: n } : null;
+    }).filter(Boolean);
+  } catch (e) {
+    return [];   /* silence, never a guess */
+  }
+}
+
 const gviz = (id) =>
   `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&headers=1&nocache=${Date.now()}`;
 
@@ -272,7 +312,11 @@ REGLAS QUE NO PODÉS ROMPER:
 9. Pasá el contacto cuando quieran inscribirse, pregunten por plata, pregunten algo que no está en los datos, o parezcan trabados.
 10. No prometas resultados ni vacantes. No uses urgencia falsa ni presión.
 11. Escribí en texto plano. Nada de markdown: sin asteriscos, sin negritas, sin encabezados. Si necesitás una lista, poné cada ítem en su propia línea empezando con un guion.
-12. TARJETAS DE TALLERES. Cuando tu respuesta se refiera a talleres concretos, terminá el mensaje con una línea sola con los IDs, en este formato exacto:
+12. FERIADOS. Si te preguntan si hay clases en una fecha, mirá la sección FERIADOS de los DATOS.
+- Si esa fecha figura en la lista: decí que es feriado y que ese día no hay clases.
+- Si NO figura, o si la lista dice que no hay datos: NO afirmes que sí hay clases. Decí que en la información que tenés esa fecha no figura como feriado, y que lo confirmen al ${PHONE}. Nunca inventes un feriado ni una fecha.
+
+13. TARJETAS DE TALLERES. Cuando tu respuesta se refiera a talleres concretos, terminá el mensaje con una línea sola con los IDs, en este formato exacto:
 [[CURSOS: C030, C031]]
 Reglas de las tarjetas:
 - Máximo 8 IDs. Si hay más, elegí los más relevantes y decilo en el texto.
@@ -338,7 +382,8 @@ export default async function handler(req, res) {
         faqColumns: faq.length ? Object.keys(faq[0]) : [],
         faqSheetConfigured: Boolean(FAQ_SHEET),
         faqUsable: faq.length > 0 && Boolean(faq[0].question_es && faq[0].answer_es),
-        faqSample: faq.length ? String(faq[0].question_es || '(no question_es column)').slice(0, 80) : null
+        faqSample: faq.length ? String(faq[0].question_es || '(no question_es column)').slice(0, 80) : null,
+        holidaysAffectingClasses: (await readHolidays(courses)).length
       };
     } catch (e) { error = String(e.message || e); }
     if (hasKey) {
@@ -387,11 +432,16 @@ export default async function handler(req, res) {
       readSheet(COURSES_SHEET),
       FAQ_SHEET ? readSheet(FAQ_SHEET) : Promise.resolve([])
     ]);
+    const holidays = await readHolidays(courses);
 
     const context =
       `=== PREGUNTAS FRECUENTES (${faq.length}) ===\n` +
       (faq.length ? faqToText(faq) : '(hoja de FAQ no configurada)') +
       `\n\n=== TALLERES 2026 (${courses.length}) ===\n` + coursesToText(courses) +
+      (holidays.length
+        ? '\n\n=== FERIADOS QUE CAEN EN UN DIA QUE DICTAMOS (esos dias no hay clases) ===\n' +
+          holidays.map((h) => `${h.fecha} (${h.day}): ${h.nombre}. Afecta a ${h.courses} talleres.`).join('\n')
+        : '\n\n=== FERIADOS ===\n(sin datos de feriados en este momento)') +
       `\n\n=== CONTACTO ===\nWhatsApp y teléfono ${PHONE}. Otro teléfono 3543 536010. ` +
       `Mail info@promover.org.ar y aulauniversitaria@ubp.edu.ar. ` +
       `Campus UBP, Avda. Donato Álvarez 380, Argüello, Córdoba. ` +

@@ -28,6 +28,22 @@
      hidden rather than showing an empty heading. */
   var INFO_SHEET_ID = '1x4Gf8OEYduZuh1lofeh_xxXeGVrlWZEie4FVHcDFnE4';
 
+  /* Argentine national public holidays. Free, no key, CORS open.
+     Valentina's caveat, and the rule this whole feature is built on:
+     argentinadatos.com is a community project with no uptime guarantee, so
+     this must degrade to SILENCE. It may say "there is no class on this
+     date". It must never say "there is a class", and if the API is
+     unreachable or returns anything unexpected, the notice simply does not
+     appear. A missing notice costs nothing. A wrong one sends a 70 year old
+     to Argüello for a locked classroom. */
+  var HOLIDAYS_API = 'https://api.argentinadatos.com/v1/feriados/';
+
+  /* The teaching year, from the programme document. Only a guard: the real
+     filter is whether the date falls on a day the live sheet says we teach. */
+  var TERM_START = '2026-03-02';
+  var TERM_END   = '2026-11-30';
+  var MAX_NOTICES = 3;
+
   var gviz = function (id) {
     return 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1';
   };
@@ -39,6 +55,7 @@
   var COURSES = [];
   var TEACHERS = [];
   var INFO = [];
+  var HOLIDAYS = [];
   var FETCHED_AT = null;
   var LANG = 'es';
 
@@ -211,7 +228,11 @@
       'ui.noday': 'Dates to be confirmed',
       'ui.teaches': 'Teaches', 'ui.more': 'Read more', 'ui.less': 'Show less',
       'ui.courseOne': 'workshop in 2026', 'ui.courseMany': 'workshops in 2026',
-      'ui.seeCourses': 'See their workshops'
+      'ui.seeCourses': 'See their workshops',
+      'hol.title': 'Days with no classes',
+      'hol.lead': 'These are national public holidays that fall on a day we teach. There are no classes on these dates.',
+      'hol.one': 'workshop', 'hol.many': 'workshops',
+      'hol.check': 'Any doubt, call us on '
     },
     es: {
       'tool.lang': 'EN',
@@ -232,7 +253,11 @@
       'ui.noday': 'Fechas a confirmar',
       'ui.teaches': 'Dicta', 'ui.more': 'Leer más', 'ui.less': 'Mostrar menos',
       'ui.courseOne': 'taller en 2026', 'ui.courseMany': 'talleres en 2026',
-      'ui.seeCourses': 'Ver sus talleres'
+      'ui.seeCourses': 'Ver sus talleres',
+      'hol.title': 'Días sin clases',
+      'hol.lead': 'Son feriados nacionales que caen en un día que dictamos. Esas fechas no hay clases.',
+      'hol.one': 'taller', 'hol.many': 'talleres',
+      'hol.check': 'Ante cualquier duda, llamanos al '
     }
   };
 
@@ -649,6 +674,90 @@
     }).join('');
   }
 
+
+  /* ------------------------------------------------------------- holidays */
+  /* Local-date parsing on purpose. new Date('2026-07-09') is parsed as UTC
+     midnight, which in Argentina is still the 8th, and a notice that names
+     the wrong day is worse than no notice at all. */
+  function parseISO(s) {
+    var p = String(s || '').split('-');
+    if (p.length !== 3) return null;
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  var JS_DAY = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+  function teachingDays() {
+    var set = {};
+    COURSES.forEach(function (c) {
+      if (c.day) set[c.day] = true;
+      if (c.alt_day) set[c.alt_day] = true;
+    });
+    return set;
+  }
+
+  function loadHolidays() {
+    /* Nothing to cross-check against means nothing trustworthy to say. */
+    if (!COURSES.length) return Promise.resolve();
+
+    var year = new Date().getFullYear();
+    return fetch(HOLIDAYS_API + year, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (list) {
+        if (!Array.isArray(list)) throw new Error('unexpected shape');
+
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var start = parseISO(TERM_START), end = parseISO(TERM_END);
+        var teach = teachingDays();
+
+        HOLIDAYS = list.map(function (h) {
+          var d = parseISO(h && h.fecha);
+          if (!d || !h.nombre) return null;
+          var dayName = JS_DAY[d.getDay()];
+          if (d < today || d < start || d > end) return null;
+          if (!teach[dayName]) return null;
+          var affected = COURSES.filter(function (c) {
+            return c.day === dayName || c.alt_day === dayName;
+          }).length;
+          if (!affected) return null;
+          return { date: d, name: String(h.nombre), day: dayName, courses: affected };
+        }).filter(Boolean)
+          .sort(function (a, b) { return a.date - b.date; })
+          .slice(0, MAX_NOTICES);
+
+        renderHolidays();
+      })
+      .catch(function () {
+        /* Silence, by design. */
+        HOLIDAYS = [];
+        $('#holidays').hidden = true;
+        $('#holidays').innerHTML = '';
+      });
+  }
+
+  function renderHolidays() {
+    var box = $('#holidays');
+    if (!HOLIDAYS.length) { box.hidden = true; box.innerHTML = ''; return; }
+
+    var locale = LANG === 'es' ? 'es-AR' : 'en-IE';
+    box.innerHTML =
+      '<h3>' + esc(t('hol.title')) + '</h3>' +
+      '<p class="holidays-lead">' + esc(t('hol.lead')) + '</p>' +
+      '<ul>' + HOLIDAYS.map(function (h) {
+        var when = h.date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+        return '<li><strong>' + esc(when) + '</strong> <span class="holidays-name">' + esc(h.name) + '</span>' +
+               ' <span class="holidays-count">' + h.courses + ' ' +
+               esc(h.courses === 1 ? t('hol.one') : t('hol.many')) + '</span></li>';
+      }).join('') + '</ul>' +
+      '<p class="holidays-foot">' + esc(t('hol.check')) +
+      '<a href="tel:+5493513261002">' + esc(PHONE) + '</a>.</p>';
+    box.hidden = false;
+  }
+
   /* --------------------------------------------------------------- theme */
   function applyTheme(dark) {
     var root = document.documentElement;
@@ -684,6 +793,7 @@
     if (COURSES.length) { buildFilters(); render(); renderWeek(); stampSource(); }
     if (TEACHERS.length) renderTeachers();
     if (INFO.length) renderInfo();
+    if (HOLIDAYS.length) renderHolidays();
   }
 
   /* --------------------------------------------------------------- start */
@@ -719,6 +829,6 @@
       applyLang();
     });
 
-    loadCourses().then(loadTeachers).then(loadInfo);
+    loadCourses().then(loadTeachers).then(loadInfo).then(loadHolidays);
   });
 })();
