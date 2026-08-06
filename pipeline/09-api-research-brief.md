@@ -98,3 +98,23 @@ I could not find a usable public API.
 - Nominatim, Open Library and Wikipedia REST endpoints, each called live with CORS headers inspected
 - BCRA statistics endpoint, returned HTTP 410 on 6 August 2026
 - aulauniversitaria live course sheet, 47 rows, pulled 6 August 2026
+
+---
+
+## Addendum: what was built, 6 August 2026
+
+Finding 1 was approved and built. Findings 2 and 3 were not.
+
+**On the page.** A notice above the course finder lists the next three holidays that fall on a day we teach, each with the number of workshops it affects. Only dates inside the term, only days the live sheet says we teach, only holidays that actually collide with a class.
+
+**In the assistant.** The same list goes into its context on every message, with a rule for using it: it may list the dates, it may confirm a date is a holiday, and it may not tell anyone there IS a class on a date it cannot verify.
+
+**The failure mode was tested, not assumed.** With the API killed before the page script runs: no notice, empty container, no console error, and the 47 courses, 28 teachers, 6 info cards and week view all still render. Silence, exactly as the brief required.
+
+**Two things the live test caught that a local one would not have.**
+
+First, asked to list the upcoming holidays, the assistant said it had no such list while the list sat in its context. The rule covered "is there class on this date" and nothing else, so it declined a question it could answer.
+
+Second, and worse: asked "¿hay clases el 17 de agosto?" it replied "**Sí**, el 17 de agosto es feriado ... y ese día no hay clases". Correct, and it opens with the word that means the opposite. A reader skimming on a phone gets the wrong answer before reaching the clarification, and this audience acts on that by travelling to Argüello. The rule now requires the answer to open with "No hay clases el ...". Verified across four dates in both languages: zero answers now open with an ambiguous affirmative.
+
+**Still true, and worth repeating:** argentinadatos.com is a community project. The national holiday calendar is published by decree well in advance, so a once-a-year check of these dates against the official list costs an hour and removes the only real risk in this feature.
