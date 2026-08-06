@@ -828,6 +828,31 @@
                     may:'0531', june:'0630', july:'0731', august:'0831',
                     september:'0930', october:'1031', november:'1130', december:'1231' };
 
+  /* duration_min is meant to be a plain number of minutes, but parseInt alone
+     turns "2 horas" into 2 and, worse, turns Google Sheets' own Duration
+     format "02:00" into 2 as well. Both would put a two minute class in
+     somebody's calendar and say nothing about it.
+     So: accept a plain count of minutes, accept H:MM, and reject anything
+     outside a plausible class length. A rejected value falls back to the
+     default, which the file already labels as approximate. */
+  var MIN_MINUTES = 20, MAX_MINUTES = 480;
+
+  function durationMinutes(raw) {
+    var s = String(raw == null ? '' : raw).trim();
+    if (!s) return null;
+
+    var hm = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);   /* 02:00, 1:30 */
+    var mins = hm ? (+hm[1] * 60 + +hm[2]) : null;
+
+    if (mins === null) {
+      var n = s.match(/^(\d{1,4})(?:\s*(?:min|mins|minutos)?)?$/i);   /* 120, 120 min */
+      if (!n) return null;
+      mins = +n[1];
+    }
+    if (!(mins >= MIN_MINUTES && mins <= MAX_MINUTES)) return null;
+    return mins;
+  }
+
   function exportable(c) {
     return c.frequency === 'Weekly' && !!c.day && !!(c.time_24h || c.time_display);
   }
@@ -883,8 +908,8 @@
     var d = parseISO(TERM_START);
     while (JS_DAY[d.getDay()] !== day) d.setDate(d.getDate() + 1);
 
-    var mins = parseInt(c.duration_min, 10);
-    var assumed = !(mins > 0);
+    var mins = durationMinutes(c.duration_min);
+    var assumed = mins === null;
     if (assumed) mins = DEFAULT_MINUTES;
     var endMin = time[0] * 60 + time[1] + mins;
 

@@ -130,6 +130,25 @@ Columns: `id, name, teaches_es, teaches_en, bio_es, bio_en, photo_url, active, s
 
 `name` must match the `teacher` column in the courses sheet exactly. That join is what gives each card its workshop count and its "see their workshops" button. Set `active` to `no` to hide someone without deleting their row. `photo_url` is optional: without it the card shows the person's initials.
 
+## Calendar export
+
+Each course card offers an `.ics` download, built in the browser from data the page already holds. No API, no server, no key. National holidays that fall on that course's weekday become `EXDATE` lines, so nobody gets a reminder for a class that is not running.
+
+Offered only for courses the sheet describes as a real weekly slot. Fixed-date, one-off and fortnightly courses get no button rather than an invented series.
+
+### duration_min
+
+A plain whole number of **minutes**, in a `duration_min` column on the courses sheet.
+
+| Write | Meaning |
+|---|---|
+| `120` | two hours |
+| `90` | an hour and a half |
+| `60` | one hour |
+| *(blank)* | falls back to two hours, and the file says "duración aproximada" |
+
+Format the column as **plain text or number, not Duration**. Sheets' own Duration format sends `02:00`, and `2 horas` is a natural thing to type: both would once have produced a two-minute class. The parser now accepts minutes, `H:MM` and `H:MM:SS`, and rejects anything outside 20 to 480 minutes, falling back to the labelled default instead.
+
 ## Theme
 
 Light is the default for everyone. The operating system's dark-mode preference is deliberately not consulted, because the organisation chose white.
