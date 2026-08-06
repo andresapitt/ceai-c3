@@ -9,8 +9,16 @@
 
 **Proceed to deploy, with two conditions.** The assistant goes live on Vercel. It is not linked from Instagram or Facebook until both conditions are met.
 
-1. The FAQ sheet is uploaded and `FAQ_SHEET_ID` is set. Until then the assistant cannot answer the fee question from the knowledge base, and that is the most common question we get.
-2. Rate limiting is added before any campaign drives traffic to it.
+1. ~~The FAQ sheet is uploaded and `FAQ_SHEET_ID` is set.~~ **Met.** 35 rows live and verified answering.
+2. **Still open.** Rate limiting is added before any campaign drives traffic to it.
+
+### Post-deployment note
+
+Condition 1 was met, and the assistant still could not answer a single FAQ question for the first hour it was live. The sheet was connected, the row count looked right, and the knowledge was not reaching the model. Nadia found it by running a question battery against the deployment rather than by trusting the green light on the selftest.
+
+I am recording this because it is the exact failure this organisation cannot afford: a system that looks configured, reports healthy, and confidently tells a prospective student we have no information about the free trial class. The lesson is not about spreadsheets. It is that "connected" and "working" are different claims, and only one of them was tested.
+
+The condition I am adding for anything we build next: no integration is signed off on a status endpoint alone. Someone asks it real questions and reads the answers.
 
 Reasoning: the assistant answers, at any hour, the questions coordination currently answers one at a time during office hours. It costs nothing to host and it degrades to a phone number when anything fails. The risk is not that it breaks. The risk is that it says something confidently wrong to someone who believes it.
 

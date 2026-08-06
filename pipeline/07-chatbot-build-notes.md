@@ -72,8 +72,8 @@ The false-positive cases matter as much as the blocks. An earlier version caught
 
 | Gap | Detail |
 |---|---|
-| **Never tested against the real Gemini API** | Every path is tested except the one that needs a key: sheet reads, prompt assembly, the guardrail, the no-key degradation, the 405, the widget, and the offline state. The model call itself is **untested**. Use the selftest endpoint first |
-| **The FAQ sheet is not uploaded yet** | `FAQ_SHEET_ID` is unset, so the assistant currently runs on courses alone. It works, but it cannot answer about fees, certificates or absence policy until the FAQ sheet exists |
+| ~~**Never tested against the real Gemini API**~~ **CLOSED** | Deployed at `ceai-c3.vercel.app` on `gemini-3.5-flash-lite`. A 10-question battery passes: course lookups, teacher lookups, FAQ policy in both languages, the fee guardrail, an out-of-scope question and a hallucination probe. Zero failures |
+| ~~**The FAQ sheet is not uploaded yet**~~ **CLOSED** | 35 rows live, `faqUsable: true` in the selftest |
 | **No rate limiting** | Anyone can post to `/api/chat` as fast as they like, and each call spends Gemini quota and reads two sheets. Vercel's platform limits are the only ceiling. Fine for a prototype, not for an unattended public launch |
 | **No abuse handling beyond the model's own filters** | Safety settings are set to block medium and above on the four standard categories. Nothing stops someone using it as a free general-purpose model, other than the system instruction telling it to answer only from the data |
 | **Conversation history is client-side only** | Last six turns are sent back with each message. Refresh the page and the assistant forgets. Deliberate, per criterion 21 |
@@ -84,6 +84,16 @@ The false-positive cases matter as much as the blocks. An earlier version caught
 
 1. Do not link the assistant from social media until the FAQ sheet is live. Without it the assistant cannot answer the fee question from the knowledge base, and that is the most common question.
 2. Add rate limiting before any campaign drives traffic.
+
+## 6b. The bug that only the live deployment could find
+
+The assistant answered every course question perfectly and claimed it had no information for `¿Dan certificado?`, `¿Puedo probar una clase gratis?` and the absence policy. All three are in the FAQ sheet.
+
+gviz decides whether row 1 is a header by comparing column types down the sheet. The courses sheet has mixed types, so the header was detected. **The FAQ sheet is entirely text**, so gviz found no header, returned the column labels as `A, B, C`, and treated row 1 as data. Every field then read as `undefined`, and the model was handed `P: undefined R: undefined` thirty-six times.
+
+It failed silently. The selftest reported `faq: 36` against 35 uploaded rows, which looked close enough to pass, and I let it pass. One row of drift was the only visible symptom of the entire knowledge base being missing.
+
+Fixed by forcing `headers=1` on both the API and the front end, with a fallback that promotes row 1 if labels ever come back empty anyway. The selftest now reports the detected column names, whether the FAQ is usable, and a sample question, because a row count was never going to catch this.
 
 ## 7. Three bugs I found by testing, not by reading
 

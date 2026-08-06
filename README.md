@@ -82,6 +82,28 @@ Two are supported today: `course_name_es` and `notes_es`. Adding more needs no c
 
 Day, area, format, level and period are translated in the page itself, so they need no columns.
 
+## The assistant
+
+Live at `/api/chat`, on Vercel, using Google Gemini.
+
+It re-reads two Google Sheets on every message: the 47-course catalogue and 35 curated FAQ answers. Nothing is bundled or cached. It discloses that it is not a person in its first sentence, asks for no personal data, stores nothing, and cannot state a fee.
+
+Deployment check:
+
+```
+GET /api/chat?selftest=1
+```
+
+Reports key presence, the configured model, the models the key can actually reach, and for each sheet the row count, the detected column names and whether the FAQ is usable. It never returns the key.
+
+Environment variables, set in Vercel and never in this repository:
+
+| Name | Purpose |
+|---|---|
+| `GEMINI_API_KEY` | Required |
+| `FAQ_SHEET_ID` | Required for the FAQ knowledge |
+| `GEMINI_MODEL` | Optional, defaults to `gemini-2.5-flash` |
+
 ## Known gaps
 
 The full list is in `pipeline/04-build-notes.md`. Nothing is hidden in a code comment.
