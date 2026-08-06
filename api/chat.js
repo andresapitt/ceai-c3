@@ -132,12 +132,18 @@ async function readHolidays(courses) {
 
     const start = parseISO(TERM_START);
     const end = parseISO(TERM_END);
+    /* Only dates still ahead of us. The assistant describes these as the
+       holidays coming up, so a date that has already passed would make that
+       description untrue. */
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const from = today > start ? today : start;
+
     const teach = new Set();
     courses.forEach((c) => { if (c.day) teach.add(c.day); if (c.alt_day) teach.add(c.alt_day); });
 
     return list.map((h) => {
       const d = parseISO(h && h.fecha);
-      if (!d || !h.nombre || d < start || d > end) return null;
+      if (!d || !h.nombre || d < from || d > end) return null;
       const day = JS_DAY[d.getDay()];
       if (!teach.has(day)) return null;
       const n = courses.filter((c) => c.day === day || c.alt_day === day).length;
@@ -312,9 +318,11 @@ REGLAS QUE NO PODÉS ROMPER:
 9. Pasá el contacto cuando quieran inscribirse, pregunten por plata, pregunten algo que no está en los datos, o parezcan trabados.
 10. No prometas resultados ni vacantes. No uses urgencia falsa ni presión.
 11. Escribí en texto plano. Nada de markdown: sin asteriscos, sin negritas, sin encabezados. Si necesitás una lista, poné cada ítem en su propia línea empezando con un guion.
-12. FERIADOS. Si te preguntan si hay clases en una fecha, mirá la sección FERIADOS de los DATOS.
-- Si esa fecha figura en la lista: decí que es feriado y que ese día no hay clases.
-- Si NO figura, o si la lista dice que no hay datos: NO afirmes que sí hay clases. Decí que en la información que tenés esa fecha no figura como feriado, y que lo confirmen al ${PHONE}. Nunca inventes un feriado ni una fecha.
+12. FERIADOS. La sección FERIADOS de los DATOS trae los próximos feriados que caen en un día que dictamos. Es información real: usala.
+- Si te preguntan por los próximos feriados o por los días sin clases, listá los que están en esa sección, con la fecha y el nombre. No digas que no tenés la lista: la tenés.
+- Si te preguntan por una fecha concreta y esa fecha figura en la lista: decí que es feriado y que ese día no hay clases.
+- Si te preguntan por una fecha concreta que NO figura, o si la sección dice que no hay datos: NO afirmes que sí hay clases. Decí que en la información que tenés esa fecha no figura como feriado, y que lo confirmen al ${PHONE}.
+- Nunca inventes un feriado, una fecha ni un nombre de feriado.
 
 13. TARJETAS DE TALLERES. Cuando tu respuesta se refiera a talleres concretos, terminá el mensaje con una línea sola con los IDs, en este formato exacto:
 [[CURSOS: C030, C031]]
@@ -439,7 +447,7 @@ export default async function handler(req, res) {
       (faq.length ? faqToText(faq) : '(hoja de FAQ no configurada)') +
       `\n\n=== TALLERES 2026 (${courses.length}) ===\n` + coursesToText(courses) +
       (holidays.length
-        ? '\n\n=== FERIADOS QUE CAEN EN UN DIA QUE DICTAMOS (esos dias no hay clases) ===\n' +
+        ? '\n\n=== PROXIMOS FERIADOS QUE CAEN EN UN DIA QUE DICTAMOS (esos dias no hay clases) ===\n' +
           holidays.map((h) => `${h.fecha} (${h.day}): ${h.nombre}. Afecta a ${h.courses} talleres.`).join('\n')
         : '\n\n=== FERIADOS ===\n(sin datos de feriados en este momento)') +
       `\n\n=== CONTACTO ===\nWhatsApp y teléfono ${PHONE}. Otro teléfono 3543 536010. ` +
