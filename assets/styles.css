@@ -21,6 +21,13 @@
 html[data-textsize="big"]{ --fs:24px; }
 
 *{box-sizing:border-box}
+
+/* The hidden attribute must always win. An author rule like
+   .site-nav a{display:inline-flex} silently beats the browser's
+   [hidden]{display:none}, which put a nav link on screen pointing at a
+   section that was correctly hidden. This has now bitten twice, so it is
+   fixed once, globally, rather than per component. */
+[hidden]{ display:none !important }
 html{ font-size:var(--fs); -webkit-text-size-adjust:100%; scroll-behavior:smooth }
 @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} *{animation:none!important;transition:none!important} }
 

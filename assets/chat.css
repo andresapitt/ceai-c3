@@ -17,9 +17,9 @@
   background:#fff; flex:0 0 auto;
 }
 
-/* An author display rule beats the browser's [hidden]{display:none}, so the
-   panel sat open and empty on every page load until this was added. The
-   attribute must win. */
+/* Kept alongside the global [hidden] rule in styles.css: the panel is the
+   component that first exposed the problem, and this file is loaded even if
+   the other is not. */
 .chat-panel[hidden]{ display:none }
 
 .chat-panel{
