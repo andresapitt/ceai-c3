@@ -351,3 +351,14 @@ a:hover{ color:var(--red) }
 :root[data-theme="dark"] .holidays{ background:#241E10; border-color:#4A3D1C; border-left-color:#C79A22 }
 :root[data-theme="dark"] .holidays h3{ color:#E8C972 }
 :root[data-theme="dark"] .holidays-count{ background:#3A3018; border-color:#5A4A24; color:#E8C972 }
+
+/* ---------- calendar export ---------- */
+.card-cal{ display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; margin:.55rem 0 0 }
+.card-cal-label{ font-size:.8rem; font-weight:600; color:var(--ink-soft); width:100% }
+.card-cal-btn{
+  flex:0 1 auto; min-height:44px; padding:0 .8rem;
+  border:2px solid var(--line); border-radius:9px; background:transparent;
+  font:inherit; font-size:.85rem; font-weight:700; color:var(--ink-soft); cursor:pointer;
+}
+.card-cal-btn.wide{ flex:1 1 100%; }
+.card-cal-btn:hover{ border-color:var(--red); color:var(--red-dark) }

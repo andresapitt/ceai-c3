@@ -55,7 +55,8 @@
   var COURSES = [];
   var TEACHERS = [];
   var INFO = [];
-  var HOLIDAYS = [];
+  var HOLIDAYS = [];      /* upcoming, for the notice */
+  var HOLIDAYS_ALL = [];  /* every in-term holiday, for calendar exclusions */
   var FETCHED_AT = null;
   var LANG = 'es';
 
@@ -232,7 +233,10 @@
       'hol.title': 'Days with no classes',
       'hol.lead': 'These are national public holidays that fall on a day we teach. There are no classes on these dates.',
       'hol.one': 'workshop', 'hol.many': 'workshops',
-      'hol.check': 'Any doubt, call us on '
+      'hol.check': 'Any doubt, call us on ',
+      'cal.add': 'Add to my calendar', 'cal.addDay': 'Add to calendar:',
+      'cal.assumed': 'Approximate duration, two hours',
+      'cal.ask': 'Questions:'
     },
     es: {
       'tool.lang': 'EN',
@@ -257,7 +261,10 @@
       'hol.title': 'Días sin clases',
       'hol.lead': 'Son feriados nacionales que caen en un día que dictamos. Esas fechas no hay clases.',
       'hol.one': 'taller', 'hol.many': 'talleres',
-      'hol.check': 'Ante cualquier duda, llamanos al '
+      'hol.check': 'Ante cualquier duda, llamanos al ',
+      'cal.add': 'Agregar a mi calendario', 'cal.addDay': 'Agregar al calendario:',
+      'cal.assumed': 'Duración aproximada, dos horas',
+      'cal.ask': 'Consultas:'
     }
   };
 
@@ -459,6 +466,18 @@
 
   function courseTitle(c) { return pick(c, 'course_name'); }
 
+  /* The sheet gives the main slot a friendly time_display but the alternative
+     only a raw 24h value, so the two sat next to each other as "4:00 p.m."
+     and "09:00". Everything goes through this. */
+  function prettyTime(raw) {
+    var m = String(raw || '').match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return String(raw || '');
+    var h = +m[1], mm = m[2];
+    var suffix = h < 12 ? 'a.m.' : 'p.m.';
+    var h12 = h % 12; if (h12 === 0) h12 = 12;
+    return h12 + ':' + mm + ' ' + suffix;
+  }
+
   function whenLabel(c) {
     var bits = [];
     if (c.day) bits.push(tr(DAY_ES, c.day));
@@ -483,7 +502,7 @@
 
     if (c.alt_day) {
       out.push('<p class="card-line">' + esc(t('ui.also')) + ': <strong>' +
-        esc(tr(DAY_ES, c.alt_day)) + (c.alt_time_24h ? ', ' + esc(c.alt_time_24h) : '') + '</strong></p>');
+        esc(tr(DAY_ES, c.alt_day)) + (c.alt_time_24h ? ', ' + esc(prettyTime(c.alt_time_24h)) : '') + '</strong></p>');
     }
     if (c.teacher) out.push('<p class="card-line">' + esc(t('ui.teacher')) + ': <strong>' + esc(c.teacher) + '</strong></p>');
     if (c.level) out.push('<p class="card-line">' + esc(t('ui.level')) + ': <strong>' + esc(tr(LEVEL_ES, c.level)) + '</strong></p>');
@@ -501,6 +520,23 @@
       (LANG === 'es' ? 'Hola, quiero consultar por el taller: ' : 'Hello, I would like to ask about: ') + courseTitle(c)
     );
     out.push('<p class="card-cta"><a href="' + WA + '?text=' + ask + '" rel="noopener">' + esc(t('ui.ask')) + '</a></p>');
+
+    /* Only for a course the sheet describes as a real weekly slot. A course
+       with fixed dates, a fortnightly rhythm or no time at all gets no button
+       rather than a series I would have to invent. */
+    if (exportable(c)) {
+      if (c.alt_day) {
+        /* Two slots is a choice, not two classes. Offer both, labelled. */
+        out.push('<p class="card-cal"><span class="card-cal-label">' + esc(t('cal.addDay')) + '</span>' +
+          '<button type="button" class="card-cal-btn" data-cal="' + esc(c.id) + '">' +
+            esc(tr(DAY_ES, c.day)) + (c.time_display ? ' ' + esc(c.time_display) : '') + '</button>' +
+          '<button type="button" class="card-cal-btn" data-cal="' + esc(c.id) + '" data-alt="1">' +
+            esc(tr(DAY_ES, c.alt_day)) + (c.alt_time_24h ? ' ' + esc(prettyTime(c.alt_time_24h)) : '') + '</button></p>');
+      } else {
+        out.push('<p class="card-cal"><button type="button" class="card-cal-btn wide" data-cal="' +
+          esc(c.id) + '">' + esc(t('cal.add')) + '</button></p>');
+      }
+    }
     out.push('</article>');
     return out.join('');
   }
@@ -512,6 +548,13 @@
       : '<p class="card-note">' + esc(t('ui.none')) + '</p>';
     $('#count').textContent = t('ui.showing') + ' ' + list.length + ' ' +
       (list.length === 1 ? t('ui.results') : t('ui.results_p'));
+
+    $('#results').querySelectorAll('.card-cal-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var c = COURSES.filter(function (x) { return x.id === btn.getAttribute('data-cal'); })[0];
+        if (c) downloadICS(c, btn.hasAttribute('data-alt'));
+      });
+    });
   }
 
   function renderWeek() {
@@ -714,26 +757,34 @@
         var start = parseISO(TERM_START), end = parseISO(TERM_END);
         var teach = teachingDays();
 
-        HOLIDAYS = list.map(function (h) {
+        /* Every holiday inside the term that lands on a day we teach. The
+           calendar export needs all of them, including ones already past,
+           because an exported series still covers the whole year. */
+        HOLIDAYS_ALL = list.map(function (h) {
           var d = parseISO(h && h.fecha);
-          if (!d || !h.nombre) return null;
+          if (!d || !h.nombre || d < start || d > end) return null;
           var dayName = JS_DAY[d.getDay()];
-          if (d < today || d < start || d > end) return null;
           if (!teach[dayName]) return null;
           var affected = COURSES.filter(function (c) {
             return c.day === dayName || c.alt_day === dayName;
           }).length;
           if (!affected) return null;
           return { date: d, name: String(h.nombre), day: dayName, courses: affected };
-        }).filter(Boolean)
-          .sort(function (a, b) { return a.date - b.date; })
-          .slice(0, MAX_NOTICES);
+        }).filter(Boolean).sort(function (a, b) { return a.date - b.date; });
+
+        /* The notice shows only what is still ahead, and only a few. */
+        HOLIDAYS = HOLIDAYS_ALL.filter(function (h) { return h.date >= today; })
+                               .slice(0, MAX_NOTICES);
 
         renderHolidays();
+        render();   /* course cards can now carry a calendar button */
       })
       .catch(function () {
-        /* Silence, by design. */
+        /* Silence, by design. The export still works: a calendar without
+           holiday exclusions is worse than one with them, but far better
+           than no calendar, and it never states anything false. */
         HOLIDAYS = [];
+        HOLIDAYS_ALL = [];
         $('#holidays').hidden = true;
         $('#holidays').innerHTML = '';
       });
@@ -756,6 +807,139 @@
       '<p class="holidays-foot">' + esc(t('hol.check')) +
       '<a href="tel:+5493513261002">' + esc(PHONE) + '</a>.</p>';
     box.hidden = false;
+  }
+
+
+  /* ---------------------------------------------------------- calendar */
+  /* iCalendar export. No API, no server, no request leaves the browser: the
+     file is built from data the page already holds and handed straight to a
+     download. RFC 5545, so Google Calendar, Apple Calendar and Outlook all
+     open it.
+     Only offered for courses the sheet can actually describe as a repeating
+     weekly slot. Fortnightly, fixed-date and to-be-confirmed courses get no
+     button rather than a guessed series. */
+
+  var DEFAULT_MINUTES = 120;   /* the programme says classes are generally two
+                                  hours. Used only when the sheet has no
+                                  duration_min, and said out loud in the file. */
+  var ICS_DAY = { Monday:'MO', Tuesday:'TU', Wednesday:'WE', Thursday:'TH',
+                  Friday:'FR', Saturday:'SA', Sunday:'SU' };
+  var MONTH_END = { january:'0131', february:'0228', march:'0331', april:'0430',
+                    may:'0531', june:'0630', july:'0731', august:'0831',
+                    september:'0930', october:'1031', november:'1130', december:'1231' };
+
+  function exportable(c) {
+    return c.frequency === 'Weekly' && !!c.day && !!(c.time_24h || c.time_display);
+  }
+
+  /* "August - October" ends in October, not at the end of the year. Reads the
+     last month named in the period and stops there, capped at the term end.
+     A period with no month falls back to the term end rather than guessing. */
+  function seriesEnd(period) {
+    var last = null, low = String(period || '').toLowerCase();
+    Object.keys(MONTH_END).forEach(function (m) {
+      var i = low.lastIndexOf(m.slice(0, 3));
+      if (i !== -1) { if (last === null || i > last.at) last = { at: i, key: m }; }
+    });
+    var end = last ? '2026' + MONTH_END[last.key] : TERM_END.replace(/-/g, '');
+    var termEnd = TERM_END.replace(/-/g, '');
+    return end > termEnd ? termEnd : end;
+  }
+
+  function hhmm(c, useAlt) {
+    var raw = useAlt ? (c.alt_time_24h || '') : (c.time_24h || '');
+    var m = String(raw).match(/(\d{1,2}):(\d{2})/);
+    if (m) return [ +m[1], +m[2] ];
+    /* fall back to the display string, e.g. "5:00 p.m." */
+    var d = String(useAlt ? c.alt_time_24h : c.time_display).match(/(\d{1,2}):(\d{2})\s*([ap])/i);
+    if (!d) return null;
+    var h = +d[1] % 12; if (/p/i.test(d[3])) h += 12;
+    return [ h, +d[2] ];
+  }
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  /* RFC 5545: escape the delimiters, and fold lines longer than 75 octets. */
+  function icsText(s) {
+    return String(s == null ? '' : s)
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\r?\n/g, '\\n');
+  }
+  function fold(line) {
+    if (line.length <= 73) return line;
+    var out = line.slice(0, 73), rest = line.slice(73);
+    while (rest.length > 72) { out += '\r\n ' + rest.slice(0, 72); rest = rest.slice(72); }
+    return out + '\r\n ' + rest;
+  }
+
+  function buildICS(c, useAlt) {
+    var day = useAlt ? c.alt_day : c.day;
+    var time = hhmm(c, useAlt);
+    if (!day || !time || !ICS_DAY[day]) return null;
+
+    /* first occurrence on or after the term start */
+    var d = parseISO(TERM_START);
+    while (JS_DAY[d.getDay()] !== day) d.setDate(d.getDate() + 1);
+
+    var mins = parseInt(c.duration_min, 10);
+    var assumed = !(mins > 0);
+    if (assumed) mins = DEFAULT_MINUTES;
+    var endMin = time[0] * 60 + time[1] + mins;
+
+    var startStamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
+                     'T' + pad(time[0]) + pad(time[1]) + '00';
+    var endStamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
+                   'T' + pad(Math.floor(endMin / 60) % 24) + pad(endMin % 60) + '00';
+
+    var TZ = 'America/Argentina/Cordoba';
+    var lines = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//aulauniversitaria//ES', 'CALSCALE:GREGORIAN',
+      'BEGIN:VTIMEZONE', 'TZID:' + TZ, 'BEGIN:STANDARD', 'DTSTART:19700101T000000',
+      'TZOFFSETFROM:-0300', 'TZOFFSETTO:-0300', 'TZNAME:-03', 'END:STANDARD', 'END:VTIMEZONE',
+      'BEGIN:VEVENT',
+      'UID:' + c.id + (useAlt ? '-alt' : '') + '@aulauniversitaria',
+      'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, ''),
+      'DTSTART;TZID=' + TZ + ':' + startStamp,
+      'DTEND;TZID=' + TZ + ':' + endStamp,
+      'RRULE:FREQ=WEEKLY;BYDAY=' + ICS_DAY[day] + ';UNTIL=' + seriesEnd(c.period) + 'T235900Z'
+    ];
+
+    /* Skip the national holidays that land on this weekday. If the holidays
+       API was unreachable this list is empty, which yields a calendar with no
+       exclusions rather than one with wrong ones. */
+    HOLIDAYS_ALL.forEach(function (h) {
+      if (h.day !== day) return;
+      lines.push('EXDATE;TZID=' + TZ + ':' + h.date.getFullYear() + pad(h.date.getMonth() + 1) +
+                 pad(h.date.getDate()) + 'T' + pad(time[0]) + pad(time[1]) + '00');
+    });
+
+    var desc = [];
+    if (c.teacher) desc.push(t('ui.teacher') + ': ' + c.teacher);
+    if (c.period) desc.push(t('ui.period') + ': ' + (LANG === 'es' ? periodEs(c.period) : c.period));
+    if (assumed) desc.push(t('cal.assumed'));
+    desc.push(t('cal.ask') + ' ' + PHONE);
+
+    lines.push('SUMMARY:' + icsText(courseTitle(c)));
+    if (c.venue) lines.push('LOCATION:' + icsText(c.venue));
+    lines.push('DESCRIPTION:' + icsText(desc.join('. ')));
+    lines.push('END:VEVENT', 'END:VCALENDAR');
+
+    return lines.map(fold).join('\r\n') + '\r\n';
+  }
+
+  function downloadICS(c, useAlt) {
+    var ics = buildICS(c, useAlt);
+    if (!ics) return;
+    var name = String(courseTitle(c)).toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || 'taller';
+    var blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name + '.ics';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
 
   /* --------------------------------------------------------------- theme */
