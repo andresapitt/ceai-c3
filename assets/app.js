@@ -26,7 +26,7 @@
   /* The "Lo que conviene saber" cards. Same rule as the teacher sheet: while
      this id is empty, or if the sheet cannot be read, the section stays
      hidden rather than showing an empty heading. */
-  var INFO_SHEET_ID = '';
+  var INFO_SHEET_ID = '1x4Gf8OEYduZuh1lofeh_xxXeGVrlWZEie4FVHcDFnE4';
 
   var gviz = function (id) {
     return 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1';
