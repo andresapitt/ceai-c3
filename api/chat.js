@@ -111,6 +111,75 @@ function coursesToText(rows) {
   }).join('\n');
 }
 
+/* Display maps for the cards. The model chooses WHICH courses to show, by id.
+   It never supplies the contents of a card: every field below is copied from
+   the sheet row. That way a card cannot contain an invented time or teacher
+   even if the model hallucinates one in its prose. */
+const DAY_ES = {
+  Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miércoles', Thursday: 'Jueves',
+  Friday: 'Viernes', Saturday: 'Sábado', Sunday: 'Domingo',
+  'Saturday-Sunday': 'Sábado y domingo'
+};
+const FMT_ES = { 'In person': 'Presencial', 'Online': 'Virtual' };
+const CAT_ES = {
+  'Art and Creativity': 'Arte y creatividad',
+  'Humanities and Personal Development': 'Humanidades y desarrollo personal',
+  'Technology': 'Tecnología', 'Physical Activities': 'Actividades corporales',
+  'Games and Play': 'Actividades lúdicas', 'Languages': 'Idiomas',
+  'New workshop (Aug 2026)': 'Taller nuevo (agosto 2026)'
+};
+const LEVEL_ES = {
+  Beginner: 'Inicial', 'Beginner 2': 'Inicial 2', Elementary: 'Elemental',
+  'Pre-Intermediate': 'Pre intermedio', 'Pre-Intermediate 2': 'Pre intermedio 2',
+  Intermediate: 'Intermedio', 'Intermediate/Advanced': 'Intermedio y avanzado',
+  Advanced: 'Avanzado', 'Level 1': 'Nivel 1', 'Level 2': 'Nivel 2', 'Level 3': 'Nivel 3',
+  'Beginner to experienced': 'Desde cero o con experiencia',
+  'No prior experience required': 'Sin experiencia previa'
+};
+const MONTH_ES = {
+  January: 'enero', February: 'febrero', March: 'marzo', April: 'abril', May: 'mayo',
+  June: 'junio', July: 'julio', August: 'agosto', September: 'septiembre',
+  October: 'octubre', November: 'noviembre', December: 'diciembre',
+  Jan: 'ene', Feb: 'feb', Mar: 'mar', Apr: 'abr', Jun: 'jun', Jul: 'jul',
+  Aug: 'ago', Sep: 'sep', Oct: 'oct', Nov: 'nov', Dec: 'dic'
+};
+
+const map = (m, v, lang) => (!v ? '' : lang === 'en' ? v : (m[v] || v));
+
+function periodEs(v) {
+  if (!v) return '';
+  let out = v.replace(/^Full year/i, 'Todo el año')
+             .replace(/Date to be confirmed/i, 'Fecha a confirmar')
+             .replace(/\b(\d+)\s*months?\b/i, '$1 meses')
+             .replace(/\band\b/g, 'y')
+             .replace(/\s+-\s+/g, ' a ');
+  Object.keys(MONTH_ES).forEach((en) => {
+    out = out.replace(new RegExp('\\b' + en + '\\b', 'g'), MONTH_ES[en]);
+  });
+  return out;
+}
+
+function toCard(c, lang) {
+  const when = [map(DAY_ES, c.day, lang), c.time_display || c.time_24h].filter(Boolean).join(', ');
+  return {
+    id: c.id,
+    title: (lang === 'es' && c.course_name_es) ? c.course_name_es : c.course_name,
+    when: when || (lang === 'en' ? 'Dates to be confirmed' : 'Fechas a confirmar'),
+    altWhen: c.alt_day
+      ? [map(DAY_ES, c.alt_day, lang), c.alt_time_24h].filter(Boolean).join(', ')
+      : '',
+    format: map(FMT_ES, c.format, lang),
+    online: /online/i.test(c.format || ''),
+    isWorkshop: /workshop/i.test(c.type || ''),
+    category: map(CAT_ES, c.category, lang),
+    teacher: c.teacher || '',
+    level: map(LEVEL_ES, c.level, lang),
+    period: lang === 'es' ? periodEs(c.period) : (c.period || ''),
+    venue: c.venue || '',
+    capacity: c.capacity || ''
+  };
+}
+
 function faqToText(rows) {
   return rows.map((f) =>
     `[${f.id} ${f.category}] P: ${f.question_es} R: ${f.answer_es}` +
@@ -133,6 +202,13 @@ REGLAS QUE NO PODÉS ROMPER:
 9. Pasá el contacto cuando quieran inscribirse, pregunten por plata, pregunten algo que no está en los datos, o parezcan trabados.
 10. No prometas resultados ni vacantes. No uses urgencia falsa ni presión.
 11. Escribí en texto plano. Nada de markdown: sin asteriscos, sin negritas, sin encabezados. Si necesitás una lista, poné cada ítem en su propia línea empezando con un guion.
+12. TARJETAS DE TALLERES. Cuando tu respuesta se refiera a talleres concretos, terminá el mensaje con una línea sola con los IDs, en este formato exacto:
+[[CURSOS: C030, C031]]
+Reglas de las tarjetas:
+- Máximo 8 IDs. Si hay más, elegí los más relevantes y decilo en el texto.
+- Usá solo IDs que estén en los DATOS. No inventes un ID.
+- En el texto NO repitas día, horario, docente ni modalidad: eso ya se muestra en las tarjetas. Escribí una o dos oraciones de contexto y nada más.
+- Si la pregunta no es sobre talleres concretos (por ejemplo aranceles o certificados), no pongas la línea de IDs.
 
 Sos un asistente automático, no una persona, y el visitante ya lo sabe porque se lo dijimos al abrir el chat.`;
 
@@ -256,9 +332,27 @@ export default async function handler(req, res) {
 
     const data = await upstream.json();
     const cand = data.candidates && data.candidates[0];
-    const reply = cand && cand.content && cand.content.parts
+    let reply = cand && cand.content && cand.content.parts
       ? cand.content.parts.map((p) => p.text || '').join('').trim()
       : '';
+
+    /* The model picks which courses to show, by id. Everything a card then
+       displays is read out of the sheet row, so a card cannot show a time or
+       a teacher the model made up. An id that is not in the sheet is dropped
+       silently rather than rendered as an empty card. */
+    let cards = [];
+    const tag = reply.match(/\[\[\s*CURSOS?\s*:\s*([^\]]*)\]\]/i);
+    if (tag) {
+      const ids = tag[1].split(/[,;\s]+/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+      const seen = new Set();
+      cards = ids
+        .filter((id) => (seen.has(id) ? false : seen.add(id)))
+        .map((id) => courses.find((c) => String(c.id || '').toUpperCase() === id))
+        .filter(Boolean)
+        .slice(0, 8)
+        .map((c) => toCard(c, lang));
+      reply = reply.replace(tag[0], '').replace(/\n{3,}/g, '\n\n').trim();
+    }
 
     if (!reply) {
       return res.status(200).json({
@@ -280,8 +374,15 @@ export default async function handler(req, res) {
       });
     }
 
+    /* If the model returned nothing but the id line, give the cards a caption
+       rather than showing them under an empty bubble. */
+    if (!reply && cards.length) {
+      reply = lang === 'en' ? 'Here is what I found:' : 'Esto es lo que encontré:';
+    }
+
     return res.status(200).json({
       reply,
+      cards,
       handoff: /whatsapp|351 3 261002|3513 261002/i.test(reply),
       sources: { courses: courses.length, faq: faq.length, fetchedAt: new Date().toISOString() }
     });

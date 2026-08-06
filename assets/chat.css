@@ -120,3 +120,46 @@
 }
 
 @media print{ .chat-launch, .chat-panel{ display:none } }
+
+/* ---------- course cards inside the chat ----------
+   Same visual language as the cards on the page, sized for a narrow panel.
+   Every value shown here is read from the sheet by the server, not written
+   by the model. */
+.chat-cards{ display:flex; flex-direction:column; gap:.7rem }
+
+.chat-card{
+  background:var(--paper); border:1px solid var(--line);
+  border-left:5px solid var(--red); border-radius:12px;
+  padding:.8rem .9rem;
+}
+.chat-card.is-workshop{ border-left-color:#1F6F4A }
+
+.chat-card h3{
+  margin:0 0 .5rem; font-size:.98rem; line-height:1.3; color:var(--ink);
+}
+
+.chat-card-chips{ display:flex; flex-wrap:wrap; gap:.35rem; margin-bottom:.5rem }
+.chat-chip-tag{
+  display:inline-block; padding:.18rem .55rem; border-radius:999px;
+  font-size:.74rem; font-weight:700; line-height:1.5;
+  background:var(--paper-alt); color:var(--ink-soft); border:1px solid var(--line);
+}
+.chat-chip-tag.when{ background:#FBE9EC; color:var(--red-dark); border-color:#F3C9D0 }
+.chat-chip-tag.online{ background:#E7F1FB; color:#0B4E96; border-color:#C6DDF4 }
+
+.chat-card-line{ margin:0 0 .18rem; font-size:.82rem; line-height:1.45; color:var(--ink-soft) }
+.chat-card-line span{ font-weight:600 }
+.chat-card-line strong{ color:var(--ink); font-weight:700 }
+
+.chat-card-ask{
+  display:flex; align-items:center; justify-content:center;
+  min-height:44px; margin-top:.6rem; padding:0 .8rem;
+  border:2px solid var(--red); border-radius:9px;
+  color:var(--red-dark); font-size:.85rem; font-weight:700; text-decoration:none;
+}
+.chat-card-ask:hover{ background:var(--red); color:#fff }
+
+:root[data-theme="dark"] .chat-card{ background:#201E1C }
+:root[data-theme="dark"] .chat-chip-tag{ background:#2A2724 }
+:root[data-theme="dark"] .chat-chip-tag.when{ background:#3A1D22; color:#FFB3BE; border-color:#5A2B33 }
+:root[data-theme="dark"] .chat-chip-tag.online{ background:#152A3E; color:#9CC9F5; border-color:#25415C }

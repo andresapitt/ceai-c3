@@ -34,7 +34,9 @@
       suggest: ['¿Cuánto cuesta?', '¿Puedo probar una clase antes?', '¿Qué talleres hay los martes?', '¿Dónde son las clases?'],
       offline: 'El asistente no está disponible en esta dirección. Escribinos por WhatsApp al ' + PHONE + ' y te respondemos.',
       wa: 'Escribir por WhatsApp',
-      you: 'Vos', bot: 'Asistente'
+      you: 'Vos', bot: 'Asistente',
+      cAlso: 'También', cTeacher: 'Profesor', cLevel: 'Nivel',
+      cPeriod: 'Período', cPlaces: 'Cupo', cAsk: 'Consultar por este taller'
     },
     en: {
       launch: 'Ask us anything',
@@ -49,7 +51,9 @@
       suggest: ['How much does it cost?', 'Can I try a class first?', 'What is on on Tuesdays?', 'Where are the classes?'],
       offline: 'The assistant is not available at this address. Message us on WhatsApp at ' + PHONE + ' and we will reply.',
       wa: 'Message on WhatsApp',
-      you: 'You', bot: 'Assistant'
+      you: 'You', bot: 'Assistant',
+      cAlso: 'Also', cTeacher: 'Teacher', cLevel: 'Level',
+      cPeriod: 'Period', cPlaces: 'Places', cAsk: 'Ask about this course'
     }
   };
 
@@ -180,6 +184,52 @@
     log.appendChild(box);
   }
 
+  /* Course cards. Every value here arrives from the server already read out
+     of the sheet, so nothing on a card is the model's wording. */
+  function cardsBlock(cards) {
+    var box = document.createElement('div');
+    box.className = 'chat-cards';
+    box.setAttribute('role', 'list');
+
+    cards.forEach(function (c) {
+      var el = document.createElement('article');
+      el.className = 'chat-card' + (c.isWorkshop ? ' is-workshop' : '');
+      el.setAttribute('role', 'listitem');
+
+      var chips = [
+        '<span class="chat-chip-tag when">' + esc(c.when) + '</span>',
+        c.format ? '<span class="chat-chip-tag' + (c.online ? ' online' : '') + '">' + esc(c.format) + '</span>' : '',
+        c.category ? '<span class="chat-chip-tag">' + esc(c.category) + '</span>' : ''
+      ].filter(Boolean).join('');
+
+      var lines = [
+        c.altWhen ? row(t('cAlso'), c.altWhen) : '',
+        c.teacher ? row(t('cTeacher'), c.teacher) : '',
+        c.level ? row(t('cLevel'), c.level) : '',
+        c.period ? row(t('cPeriod'), c.period) : '',
+        c.capacity ? row(t('cPlaces'), c.capacity) : ''
+      ].filter(Boolean).join('');
+
+      var ask = encodeURIComponent(
+        (lang() === 'es' ? 'Hola, quiero consultar por el taller: ' : 'Hello, I would like to ask about: ') + c.title
+      );
+
+      el.innerHTML =
+        '<h3>' + esc(c.title) + '</h3>' +
+        '<div class="chat-card-chips">' + chips + '</div>' +
+        lines +
+        '<a class="chat-card-ask" href="' + WA + '?text=' + ask + '" rel="noopener">' + esc(t('cAsk')) + '</a>';
+      box.appendChild(el);
+    });
+
+    log.appendChild(box);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function row(label, value) {
+    return '<p class="chat-card-line"><span>' + esc(label) + ':</span> <strong>' + esc(value) + '</strong></p>';
+  }
+
   function handoffBlock() {
     var p = document.createElement('p');
     p.className = 'chat-handoff';
@@ -245,7 +295,11 @@
         var reply = data && data.reply ? data.reply : t('offline');
         pending.querySelector('.chat-body').innerHTML = format(reply);
         history.push({ role: 'assistant', text: reply });
-        if (data && data.handoff) handoffBlock();
+        var cards = (data && Array.isArray(data.cards)) ? data.cards : [];
+        if (cards.length) cardsBlock(cards);
+        /* Each card carries its own enquiry link, so the generic handoff
+           buttons underneath would just be a third way to say the same thing. */
+        if (data && data.handoff && !cards.length) handoffBlock();
       })
       .catch(function () {
         pending.querySelector('.chat-body').innerHTML = '<p>' + esc(t('offline')) + '</p>';
