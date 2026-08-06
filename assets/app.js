@@ -136,6 +136,8 @@
     en: {
       'nav.courses': 'Courses', 'nav.week': 'The week', 'nav.how': 'How to start', 'nav.contact': 'Contact',
       'tool.bigger': 'Make the text bigger', 'tool.lang': 'ES',
+      'tool.themeDark': 'Switch to a dark background',
+      'tool.themeLight': 'Switch to a light background',
       'hero.kicker': 'Asociación Civil Promover and Universidad Blas Pascal',
       'hero.title': 'Pick a course. The first class is free.',
       'hero.lead': 'Languages, art, philosophy, technology, bridge and golf. Forty-seven offerings on the Universidad Blas Pascal campus in Argüello, and online too. You can try any workshop without paying anything before you decide.',
@@ -190,6 +192,8 @@
     },
     es: {
       'tool.lang': 'EN',
+      'tool.themeDark': 'Cambiar a fondo oscuro',
+      'tool.themeLight': 'Cambiar a fondo claro',
       'ui.results': 'taller', 'ui.results_p': 'talleres', 'ui.showing': 'Mostrando',
       'ui.none': 'No hay nada con esa búsqueda. Probá limpiar los filtros, o llamanos al ' + PHONE + ' y te ayudamos a encontrar algo.',
       'ui.loading': 'Cargando los talleres', 'ui.loadingBody': 'Leyendo la lista actual de la planilla de coordinación.',
@@ -472,6 +476,22 @@
       ' <a href="https://docs.google.com/spreadsheets/d/' + SHEET_ID + '" rel="noopener">Google Sheet</a>.';
   }
 
+  /* --------------------------------------------------------------- theme */
+  function applyTheme(dark) {
+    var root = document.documentElement;
+    if (dark) root.setAttribute('data-theme', 'dark');
+    else root.removeAttribute('data-theme');
+    try { localStorage.setItem('au-theme', dark ? 'dark' : 'light'); } catch (e) {}
+
+    var btn = $('#theme');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', String(dark));
+    btn.querySelector('.theme-icon').textContent = dark ? '☀' : '☾';
+    var label = dark ? t('tool.themeLight') : t('tool.themeDark');
+    btn.querySelector('.sr-only').textContent = label;
+    btn.setAttribute('title', label);
+  }
+
   /* ------------------------------------------------------------ language */
   function captureSpanish() {
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
@@ -485,6 +505,7 @@
       var key = el.dataset.i18n;
       el.textContent = (LANG === 'es') ? el.dataset.es : t(key);
     });
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark');
     $('#lang').textContent = (LANG === 'es') ? 'EN' : 'ES';
     $('#lang').setAttribute('aria-label', LANG === 'es' ? 'Switch to English' : 'Cambiar a español');
     if (COURSES.length) { buildFilters(); render(); renderWeek(); stampSource(); }
@@ -508,6 +529,14 @@
       var big = document.documentElement.getAttribute('data-textsize') === 'big';
       document.documentElement.setAttribute('data-textsize', big ? '' : 'big');
       this.setAttribute('aria-pressed', String(!big));
+    });
+
+    /* Light is the default. Dark is a choice the visitor makes and we
+       remember, so they do not have to make it again on every visit. The only
+       thing stored is the word "dark", and it never leaves the browser. */
+    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark');
+    $('#theme').addEventListener('click', function () {
+      applyTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
     });
 
     $('#lang').addEventListener('click', function () {

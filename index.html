@@ -8,6 +8,16 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23C41230'>a</text></svg>">
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="stylesheet" href="assets/chat.css">
+<script>
+/* Applies a previously chosen dark theme before the first paint, so the page
+   never flashes white and then darkens. Light is the default: the operating
+   system preference is deliberately not consulted. */
+(function(){try{
+  if(localStorage.getItem('au-theme')==='dark'){
+    document.documentElement.setAttribute('data-theme','dark');
+  }
+}catch(e){}})();
+</script>
 </head>
 <body>
 
@@ -31,6 +41,10 @@
       <button type="button" id="text-size" class="tool" aria-pressed="false">
         <span aria-hidden="true">A+</span>
         <span class="sr-only" data-i18n="tool.bigger">Agrandar el texto</span>
+      </button>
+      <button type="button" id="theme" class="tool" aria-pressed="false">
+        <span class="theme-icon" aria-hidden="true">☾</span>
+        <span class="sr-only">Cambiar a fondo oscuro</span>
       </button>
       <button type="button" id="lang" class="tool" data-i18n="tool.lang">EN</button>
     </div>

@@ -224,26 +224,34 @@ a:hover{ color:var(--red) }
 .foot-tag{ color:#FF97A8; font-style:italic; font-weight:600; font-size:.85rem }
 .datasource{ margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid #333; font-size:.82rem; color:#A5A2A0 }
 
-/* ---------- dark mode ---------- */
-@media (prefers-color-scheme: dark){
-  :root{
-    --ink:#F2F0EE; --ink-soft:#C0BDBA; --line:#3A3835;
-    --paper:#171614; --paper-alt:#201E1C; --red:#FF6076; --red-dark:#FF8494; --focus:#7FB4FF;
-  }
-  body{ background:var(--paper); color:var(--ink) }
-  .site-header{ background:rgba(23,22,20,.96) }
-  .card,.day,.info,.steps li,.filters,.field input,.field select,.tool{ background:#201E1C }
-  .btn-ghost{ background:#201E1C; color:var(--ink); border-color:var(--ink) }
-  .btn-primary{ background:var(--red); color:#17110F }
-  .btn-primary:hover{ background:#FF8494; color:#17110F }
-  .chip{ background:#2A2724 }
-  .chip-when{ background:#3A1D22; color:#FFB3BE; border-color:#5A2B33 }
-  .chip-online{ background:#152A3E; color:#9CC9F5; border-color:#25415C }
-  .chip-new{ background:#16301F; color:#9BD9B4; border-color:#26492F }
-  .state{ background:#2A1A1C }
-  .site-footer{ background:#0E0D0C }
-  .brand-mark{ filter:invert(1) hue-rotate(180deg) saturate(1.4) }
+/* ---------- dark theme, opt in only ----------
+   Light is the default for everyone, whatever the operating system says.
+   Dark applies only when the visitor presses the theme button, which stamps
+   data-theme="dark" on the html element. */
+:root[data-theme="dark"]{
+  --ink:#F2F0EE; --ink-soft:#C0BDBA; --line:#3A3835;
+  --paper:#171614; --paper-alt:#201E1C; --red:#FF6076; --red-dark:#FF8494; --focus:#7FB4FF;
 }
+:root[data-theme="dark"] body{ background:var(--paper); color:var(--ink) }
+:root[data-theme="dark"] .site-header{ background:rgba(23,22,20,.96) }
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .day,
+:root[data-theme="dark"] .info,
+:root[data-theme="dark"] .steps li,
+:root[data-theme="dark"] .filters,
+:root[data-theme="dark"] .field input,
+:root[data-theme="dark"] .field select,
+:root[data-theme="dark"] .tool{ background:#201E1C }
+:root[data-theme="dark"] .btn-ghost{ background:#201E1C; color:var(--ink); border-color:var(--ink) }
+:root[data-theme="dark"] .btn-primary{ background:var(--red); color:#17110F }
+:root[data-theme="dark"] .btn-primary:hover{ background:#FF8494; color:#17110F }
+:root[data-theme="dark"] .chip{ background:#2A2724 }
+:root[data-theme="dark"] .chip-when{ background:#3A1D22; color:#FFB3BE; border-color:#5A2B33 }
+:root[data-theme="dark"] .chip-online{ background:#152A3E; color:#9CC9F5; border-color:#25415C }
+:root[data-theme="dark"] .chip-new{ background:#16301F; color:#9BD9B4; border-color:#26492F }
+:root[data-theme="dark"] .state{ background:#2A1A1C }
+:root[data-theme="dark"] .site-footer{ background:#0E0D0C }
+:root[data-theme="dark"] .brand-mark{ filter:invert(1) hue-rotate(180deg) saturate(1.4) }
 
 /* ---------- narrow screens ---------- */
 @media (max-width:760px){
@@ -267,3 +275,6 @@ a:hover{ color:var(--red) }
   body{ font-size:11pt }
   .card,.day{ break-inside:avoid; box-shadow:none }
 }
+
+/* theme button */
+.theme-icon{ font-size:1.15rem; line-height:1 }

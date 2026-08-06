@@ -116,6 +116,16 @@ python -m http.server 8899
 
 Then open `http://localhost:8899`. The fetch needs http rather than `file://`.
 
+## Theme
+
+Light is the default for everyone. The operating system's dark-mode preference is deliberately not consulted, because the organisation chose white.
+
+Dark is available behind the moon button in the header. The choice is remembered in `localStorage` under `au-theme` so the visitor does not have to make it again, and it never leaves the browser.
+
 ## Privacy
 
-The page collects nothing. No form, no account, no cookie, no analytics, no tracking script, no third-party embed.
+The page collects nothing and sends nothing anywhere. No form, no account, no analytics, no tracking script, no third-party embed.
+
+One value is written to `localStorage`: `au-theme`, holding the word `light` or `dark`. It is a display preference, it is not personal data, and it is never transmitted.
+
+Chat messages are sent to Google Gemini to generate a reply, which the panel states in plain words. No conversation is stored.

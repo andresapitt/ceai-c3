@@ -17,6 +17,11 @@
   background:#fff; flex:0 0 auto;
 }
 
+/* An author display rule beats the browser's [hidden]{display:none}, so the
+   panel sat open and empty on every page load until this was added. The
+   attribute must win. */
+.chat-panel[hidden]{ display:none }
+
 .chat-panel{
   position:fixed; right:1.25rem; bottom:1.25rem; z-index:61;
   display:flex; flex-direction:column;

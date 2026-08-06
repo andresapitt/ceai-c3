@@ -80,7 +80,7 @@ The static page processed nothing. The assistant processes whatever a visitor ty
 |---|---|
 | What is processed | The message text, plus the last six turns for context |
 | Where it goes | Google (Gemini API), as a processor, disclosed in the panel in plain words |
-| Stored by us | Nothing. No log, no database, no cookie, no localStorage. Refresh and it is gone |
+| Stored by us | Nothing. No log, no database, no cookie. Refresh and the conversation is gone. The site writes one `localStorage` value, `au-theme`, holding `light` or `dark`: a display preference, not personal data, never transmitted |
 | Lawful basis | Legitimate interest in answering an enquiry, Article 6(1)(f). Minimal, because we ask for nothing and keep nothing |
 | Special category data | We never ask. Someone could still volunteer health information in a free-text box, for instance asking whether a workshop suits a memory condition. We do not store it, which is the strongest mitigation available |
 | Data subject rights | Nothing to access, rectify or erase, because nothing is retained |
