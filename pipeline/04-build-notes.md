@@ -29,7 +29,7 @@ The course catalogue is **not in these files**. Look for a course name in the so
 Every page load makes an HTTP request to:
 
 ```
-https://docs.google.com/spreadsheets/d/1L_NLVsq-tyLCxXYgrWA47xWoRZK0W2Xtq2deKFM-Zug/gviz/tq?tqx=out:json
+https://docs.google.com/spreadsheets/d/1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM/gviz/tq?tqx=out:json
 ```
 
 with `cache: 'no-store'` and a changing query parameter, so neither the browser nor an intermediate cache can serve a previous response. The sheet is shared read-only by link, so there is **no API key** in this repository, and nothing to leak.
@@ -59,9 +59,9 @@ What is not real, not finished, or not tested. Nothing here is hidden in a comme
 
 | Gap | Detail | Fix |
 |---|---|---|
-| ~~**Course names show in English**~~ **CLOSED in code, waiting on the sheet** | The page now reads `course_name_es` and `notes_es` when they exist, and falls back to the English columns when they do not. `courses-2026-ES.csv` carries both, with titles taken from the original Spanish programme document rather than translated back from my English | Upload `courses-2026-ES.csv` to the sheet. No code change needed |
-| **`pick()` was missing on notes** | My first pass wired the Spanish preference into course names only. Notes would have stayed English forever and nobody would have noticed until a Spanish speaker read a card. Found by testing against the real bilingual data, not by reading the code | Fixed. `pick(c, field)` now handles any column with an `_es` twin |
-| **The Spanish search map is a stopgap** | 60 or so hand-written term pairs in `app.js`. It covers what this catalogue contains. It will not cover a course nobody has thought of | Made redundant by `course_name_es` |
+| ~~**Course names show in English**~~ **CLOSED** | The sheet now carries `course_name_es` and `notes_es`. The page prefers them in Spanish and falls back to the English columns when a twin is empty. Titles came from the original Spanish programme document, not from translating my English back. Verified against the live sheet: 47 Spanish titles, zero left in English | Done |
+| ~~**`pick()` was missing on notes**~~ **FIXED** | My first pass wired the Spanish preference into course names only. Notes would have stayed English forever and nobody would have noticed until a Spanish speaker read a card. Found by testing against the real bilingual data, not by reading the code | `pick(c, field)` now handles any column with an `_es` twin |
+| **The sheet ID is hardcoded** | The bilingual data arrived as a **new** sheet rather than an edit to the old one, so the ID in `app.js` had to change and the site was briefly pointed at a sheet that no longer held the current data. The data is fetched live, but which sheet is not | Either keep replacing the contents of one sheet, or accept that a new sheet needs a one-line code change and a deploy |
 | **No analytics** | I cannot tell you how many people use this or what they search for. Deliberate: analytics means consent and a lawful basis, which is Delia's call, not mine | Decide, then implement with consent |
 | **Untested with a screen reader** | I checked the markup, the labels and the live region by inspection. Nobody has driven this with NVDA or VoiceOver, and nobody over 50 has used it at all | One session with two real users beats another week of my checking |
 | **Untested on a real slow connection** | Tested on a local server. Not on 3G in Argüello, which is where it matters | Throttled test, then decide whether to inline the CSS |

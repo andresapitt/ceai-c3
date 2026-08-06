@@ -11,7 +11,7 @@ There is no course data in this repository. Search the source for a course name 
 `assets/app.js` requests this endpoint on every page load, with `cache: 'no-store'` and a changing query parameter so nothing can be served from a cache:
 
 ```
-https://docs.google.com/spreadsheets/d/1L_NLVsq-tyLCxXYgrWA47xWoRZK0W2Xtq2deKFM-Zug/gviz/tq?tqx=out:json
+https://docs.google.com/spreadsheets/d/1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM/gviz/tq?tqx=out:json
 ```
 
 The sheet is shared read-only by link, so there is **no API key anywhere in this repository**.

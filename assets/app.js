@@ -9,13 +9,13 @@
  * back to a stale copy.
  *
  * Source of truth:
- * https://docs.google.com/spreadsheets/d/1L_NLVsq-tyLCxXYgrWA47xWoRZK0W2Xtq2deKFM-Zug
+ * https://docs.google.com/spreadsheets/d/1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM
  */
 
 (function () {
   'use strict';
 
-  var SHEET_ID = '1L_NLVsq-tyLCxXYgrWA47xWoRZK0W2Xtq2deKFM-Zug';
+  var SHEET_ID = '1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM';
   var SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json';
   var PHONE = '351 3 261002';
   var WA = 'https://wa.me/5493513261002';
@@ -47,12 +47,11 @@
 
   var FMT_ES = { 'In person': 'Presencial', 'Online': 'Virtual' };
 
-  /* The sheet stores course names in English. A prospective student in Córdoba
-     types "italiano", not "Italian". This map expands a Spanish query into the
-     English words that actually appear in the data. It only widens the search:
-     it never renames a course or invents one.
-     The real fix is a course_name_es column in the sheet, which this page will
-     use automatically the moment it exists. See pipeline/04-build-notes.md. */
+  /* The sheet now carries Spanish course names in course_name_es, so a search
+     for "italiano" matches the title directly. This map stays because it also
+     covers words that are in nobody's title: "cartas" finds bridge, "memoria"
+     finds the cognitive workshop, "deporte" finds golf. It only widens the
+     search. It never renames a course or invents one. */
   var SEARCH_ES = {
     'italiano': 'italian', 'ingles': 'english', 'inglés': 'english',
     'frances': 'french', 'francés': 'french', 'portugues': 'portuguese',
