@@ -116,6 +116,20 @@ python -m http.server 8899
 
 Then open `http://localhost:8899`. The fetch needs http rather than `file://`.
 
+## Teachers
+
+A second sheet, read the same way as the first. Set its id in `assets/app.js`:
+
+```js
+var TEACHERS_SHEET_ID = '';   // paste the sheet id here
+```
+
+While that is empty, or if the sheet cannot be read, the teachers section and its nav link stay hidden. A missing biography is left blank rather than filled in: six people in the 2026 programme have no bio in any source.
+
+Columns: `id, name, teaches_es, teaches_en, bio_es, bio_en, photo_url, active, sort_order`.
+
+`name` must match the `teacher` column in the courses sheet exactly. That join is what gives each card its workshop count and its "see their workshops" button. Set `active` to `no` to hide someone without deleting their row. `photo_url` is optional: without it the card shows the person's initials.
+
 ## Theme
 
 Light is the default for everyone. The operating system's dark-mode preference is deliberately not consulted, because the organisation chose white.

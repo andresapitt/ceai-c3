@@ -278,3 +278,47 @@ a:hover{ color:var(--red) }
 
 /* theme button */
 .theme-icon{ font-size:1.15rem; line-height:1 }
+
+/* ---------- teachers ---------- */
+.teachers{ display:grid; grid-template-columns:repeat(auto-fill,minmax(20rem,1fr)); gap:1.25rem }
+
+.teacher{
+  display:flex; flex-direction:column;
+  background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+  padding:1.35rem; box-shadow:var(--shadow);
+}
+.teacher-head{ display:flex; align-items:center; gap:.85rem; margin-bottom:.65rem }
+.teacher-head h3{ margin:0; font-size:1.08rem; line-height:1.25 }
+
+.teacher-photo,
+.teacher-initials{
+  flex:0 0 auto; width:3.2rem; height:3.2rem; border-radius:50%;
+  object-fit:cover;
+}
+.teacher-initials{
+  display:flex; align-items:center; justify-content:center;
+  background:var(--paper-alt); border:2px solid var(--line);
+  color:var(--red-dark); font-weight:700; font-size:1.05rem; letter-spacing:.02em;
+}
+.teacher-teaches{ margin:.2rem 0 0; font-size:.88rem; color:var(--red-dark); font-weight:600 }
+.teacher-count{ margin:0 0 .6rem; font-size:.82rem; color:var(--ink-soft); font-weight:700 }
+
+.teacher-bio p{ margin:0; font-size:.93rem; line-height:1.55; color:var(--ink-soft) }
+.teacher-bio.is-clamped p{
+  display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;
+}
+
+.teacher-more,
+.teacher-link{
+  align-self:flex-start; min-height:44px; margin-top:.6rem; padding:0 .9rem;
+  border:2px solid var(--line); border-radius:9px; background:transparent;
+  font:inherit; font-size:.88rem; font-weight:700; color:var(--red-dark); cursor:pointer;
+}
+.teacher-more:hover,
+.teacher-link:hover{ border-color:var(--red); background:var(--paper-alt) }
+.teacher-link{ margin-top:auto }
+
+:root[data-theme="dark"] .teacher{ background:#201E1C }
+:root[data-theme="dark"] .teacher-initials{ background:#2A2724 }
+
+@media (max-width:760px){ .teachers{ grid-template-columns:1fr } }

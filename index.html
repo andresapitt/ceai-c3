@@ -33,6 +33,7 @@
     <nav class="site-nav" aria-label="Principal">
       <a href="#buscador" data-i18n="nav.courses">Talleres</a>
       <a href="#semana" data-i18n="nav.week">La semana</a>
+      <a href="#profesores" data-i18n="nav.teachers" id="nav-teachers" hidden>Profesores</a>
       <a href="#comollega" data-i18n="nav.how">Cómo empezar</a>
       <a href="#contacto" data-i18n="nav.contact">Contacto</a>
     </nav>
@@ -112,6 +113,17 @@
       <h2 data-i18n="week.title">La semana de un vistazo</h2>
       <p class="section-lead" data-i18n="week.lead">Todo lo que pasa cada día, ordenado por hora. Útil si ya sabés qué tarde tenés libre.</p>
       <div id="week" class="week"></div>
+    </div>
+  </section>
+
+  <!-- ===== TEACHERS =====
+       Hidden until the teacher sheet is reachable, so a missing or private
+       sheet leaves no empty heading on the page. -->
+  <section id="profesores" class="section" hidden>
+    <div class="wrap">
+      <h2 data-i18n="teach.title">Quiénes dan las clases</h2>
+      <p class="section-lead" data-i18n="teach.lead">Cada taller lo dicta alguien con una trayectoria propia. Estos son sus nombres y su recorrido.</p>
+      <div id="teachers" class="teachers"></div>
     </div>
   </section>
 

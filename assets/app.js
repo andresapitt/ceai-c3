@@ -16,12 +16,23 @@
   'use strict';
 
   var SHEET_ID = '1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM';
-  var SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&headers=1';
+
+  /* The teacher sheet. Paste the id between the quotes once the sheet is
+     uploaded and shared as "anyone with the link can view". While it is
+     empty, or if the sheet cannot be read, the teachers section and its nav
+     link stay hidden rather than showing an empty heading. */
+  var TEACHERS_SHEET_ID = '';
+
+  var gviz = function (id) {
+    return 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1';
+  };
+  var SHEET_URL = gviz(SHEET_ID);
   var PHONE = '351 3 261002';
   var WA = 'https://wa.me/5493513261002';
 
   /* ---------------------------------------------------------------- state */
   var COURSES = [];
+  var TEACHERS = [];
   var FETCHED_AT = null;
   var LANG = 'es';
 
@@ -135,6 +146,9 @@
   var STRINGS = {
     en: {
       'nav.courses': 'Courses', 'nav.week': 'The week', 'nav.how': 'How to start', 'nav.contact': 'Contact',
+      'nav.teachers': 'Teachers',
+      'teach.title': 'Who teaches the classes',
+      'teach.lead': 'Every workshop is taught by someone with a career of their own. These are their names and their background.',
       'tool.bigger': 'Make the text bigger', 'tool.lang': 'ES',
       'tool.themeDark': 'Switch to a dark background',
       'tool.themeLight': 'Switch to a light background',
@@ -188,7 +202,10 @@
       'ui.tbc': 'Date to be confirmed',
       'ui.src': 'Course data read live from the coordination team’s Google Sheet at ',
       'ui.src2': '. Nothing on this page is stored or hardcoded: reload and it queries the sheet again.',
-      'ui.noday': 'Dates to be confirmed'
+      'ui.noday': 'Dates to be confirmed',
+      'ui.teaches': 'Teaches', 'ui.more': 'Read more', 'ui.less': 'Show less',
+      'ui.courseOne': 'workshop in 2026', 'ui.courseMany': 'workshops in 2026',
+      'ui.seeCourses': 'See their workshops'
     },
     es: {
       'tool.lang': 'EN',
@@ -206,7 +223,10 @@
       'ui.tbc': 'Fecha a confirmar',
       'ui.src': 'Datos de los talleres leídos en vivo de la planilla de coordinación a las ',
       'ui.src2': '. Nada de esta página está guardado ni escrito a mano: si recargás, vuelve a consultar la planilla.',
-      'ui.noday': 'Fechas a confirmar'
+      'ui.noday': 'Fechas a confirmar',
+      'ui.teaches': 'Dicta', 'ui.more': 'Leer más', 'ui.less': 'Mostrar menos',
+      'ui.courseOne': 'taller en 2026', 'ui.courseMany': 'talleres en 2026',
+      'ui.seeCourses': 'Ver sus talleres'
     }
   };
 
@@ -251,13 +271,11 @@
   }
 
   /* ------------------------------------------------------- the live fetch */
-  function loadCourses() {
-    showState('loading');
-    /* A cache-busting parameter plus no-store: the browser must not serve a
-       previous response. Every page load is a real query. */
-    var url = SHEET_URL + '&nocache=' + Date.now();
-
-    return fetch(url, { cache: 'no-store' })
+  /* One reader for every sheet on the page. A cache-busting parameter plus
+     no-store: the browser must not serve a previous response. Every page load
+     is a real query. */
+  function readSheet(id) {
+    return fetch(gviz(id) + '&nocache=' + Date.now(), { cache: 'no-store' })
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.text();
@@ -269,18 +287,34 @@
         var payload = JSON.parse(text.substring(open, close + 1));
         if (!payload.table || !payload.table.cols) throw new Error('No table in response');
 
-        var labels = payload.table.cols.map(function (c) {
-          return (c.label || c.id || '').trim();
-        });
+        var labels = payload.table.cols.map(function (c) { return (c.label || '').trim(); });
         var types = payload.table.cols.map(function (c) { return c.type || 'string'; });
+        var rows = payload.table.rows || [];
 
-        COURSES = (payload.table.rows || []).map(function (row) {
+        /* If headers=1 were ever ignored, row 1 really is the header. */
+        if (!labels.some(Boolean) && rows.length) {
+          labels = (rows[0].c || []).map(function (c, i) {
+            return (c && c.v) ? String(c.v).trim() : 'col' + i;
+          });
+          rows = rows.slice(1);
+        }
+
+        return rows.map(function (row) {
           var obj = {};
           labels.forEach(function (label, i) {
-            obj[label] = cellText(row.c && row.c[i], types[i]);
+            if (label) obj[label] = cellText(row.c && row.c[i], types[i]);
           });
           return obj;
-        }).filter(function (o) { return o.course_name; });
+        });
+      });
+  }
+
+  function loadCourses() {
+    showState('loading');
+
+    return readSheet(SHEET_ID)
+      .then(function (rows) {
+        COURSES = rows.filter(function (o) { return o.course_name; });
 
         FETCHED_AT = new Date();
         if (!COURSES.length) throw new Error('Sheet returned zero course rows');
@@ -476,6 +510,98 @@
       ' <a href="https://docs.google.com/spreadsheets/d/' + SHEET_ID + '" rel="noopener">Google Sheet</a>.';
   }
 
+
+  /* -------------------------------------------------------------- teachers */
+  /* A second sheet, read the same way as the first. If the id is not set, or
+     the sheet cannot be read, the section and its nav link stay hidden. A
+     missing biography is left blank rather than filled with something
+     plausible: six people in the 2026 programme have no bio in any source. */
+  function loadTeachers() {
+    if (!TEACHERS_SHEET_ID) return Promise.resolve();
+    return readSheet(TEACHERS_SHEET_ID)
+      .then(function (rows) {
+        TEACHERS = rows
+          .filter(function (r) { return r.name && String(r.active || 'yes').toLowerCase() !== 'no'; })
+          .sort(function (a, b) {
+            var x = parseInt(a.sort_order, 10), y = parseInt(b.sort_order, 10);
+            if (!isNaN(x) && !isNaN(y) && x !== y) return x - y;
+            return String(a.name).localeCompare(String(b.name), 'es');
+          });
+        if (!TEACHERS.length) return;
+        $('#profesores').hidden = false;
+        $('#nav-teachers').hidden = false;
+        renderTeachers();
+      })
+      .catch(function () {
+        /* Silent by design. A teacher sheet that cannot be read should not
+           put an error on a page whose main job is the timetable. */
+        $('#profesores').hidden = true;
+        $('#nav-teachers').hidden = true;
+      });
+  }
+
+  function teacherCourses(name) {
+    var n = String(name || '').trim().toLowerCase();
+    if (!n) return [];
+    return COURSES.filter(function (c) {
+      return String(c.teacher || '').toLowerCase().split(/\s*\/\s*/)
+        .map(function (s) { return s.trim(); }).indexOf(n) !== -1;
+    });
+  }
+
+  function renderTeachers() {
+    $('#teachers').innerHTML = TEACHERS.map(function (p, i) {
+      var bio = (LANG === 'es' ? p.bio_es : p.bio_en) || p.bio_es || p.bio_en || '';
+      var teaches = (LANG === 'es' ? p.teaches_es : p.teaches_en) || p.teaches_es || p.teaches_en || '';
+      var mine = teacherCourses(p.name);
+      var count = mine.length
+        ? '<p class="teacher-count">' + mine.length + ' ' +
+          esc(mine.length === 1 ? t('ui.courseOne') : t('ui.courseMany')) + '</p>'
+        : '';
+      var initials = p.name.split(/\s+/).slice(0, 2)
+        .map(function (w) { return w.charAt(0); }).join('').toUpperCase();
+
+      var long = bio.length > 260;
+      var bioHtml = bio
+        ? '<div class="teacher-bio' + (long ? ' is-clamped' : '') + '" id="bio-' + i + '"><p>' + esc(bio) + '</p></div>' +
+          (long ? '<button type="button" class="teacher-more" aria-expanded="false" aria-controls="bio-' + i + '">' +
+                  esc(t('ui.more')) + '</button>' : '')
+        : '';
+
+      return '<article class="teacher">' +
+        '<div class="teacher-head">' +
+          (p.photo_url
+            ? '<img class="teacher-photo" src="' + esc(p.photo_url) + '" alt="" width="64" height="64" loading="lazy">'
+            : '<span class="teacher-initials" aria-hidden="true">' + esc(initials) + '</span>') +
+          '<div><h3>' + esc(p.name) + '</h3>' +
+          (teaches ? '<p class="teacher-teaches">' + esc(teaches) + '</p>' : '') + '</div>' +
+        '</div>' + count + bioHtml +
+        (mine.length ? '<button type="button" class="teacher-link" data-teacher="' + esc(p.name) + '">' +
+                       esc(t('ui.seeCourses')) + '</button>' : '') +
+      '</article>';
+    }).join('');
+
+    $('#teachers').querySelectorAll('.teacher-more').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var box = document.getElementById(btn.getAttribute('aria-controls'));
+        var open = box.classList.toggle('is-clamped') === false;
+        btn.setAttribute('aria-expanded', String(open));
+        btn.textContent = open ? t('ui.less') : t('ui.more');
+      });
+    });
+
+    /* Sends the visitor to the finder with that teacher already searched. */
+    $('#teachers').querySelectorAll('.teacher-link').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        $('#q').value = btn.getAttribute('data-teacher');
+        $('#f-day').value = ''; $('#f-cat').value = ''; $('#f-fmt').value = '';
+        render();
+        $('#buscador').scrollIntoView();
+        $('#q').focus();
+      });
+    });
+  }
+
   /* --------------------------------------------------------------- theme */
   function applyTheme(dark) {
     var root = document.documentElement;
@@ -509,6 +635,7 @@
     $('#lang').textContent = (LANG === 'es') ? 'EN' : 'ES';
     $('#lang').setAttribute('aria-label', LANG === 'es' ? 'Switch to English' : 'Cambiar a español');
     if (COURSES.length) { buildFilters(); render(); renderWeek(); stampSource(); }
+    if (TEACHERS.length) renderTeachers();
   }
 
   /* --------------------------------------------------------------- start */
@@ -544,6 +671,6 @@
       applyLang();
     });
 
-    loadCourses();
+    loadCourses().then(loadTeachers);
   });
 })();
