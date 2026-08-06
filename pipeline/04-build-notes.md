@@ -59,8 +59,8 @@ What is not real, not finished, or not tested. Nothing here is hidden in a comme
 
 | Gap | Detail | Fix |
 |---|---|---|
-| **Course names show in English** | The sheet stores `course_name` in English. A Spanish page showing "Film Workshop" is wrong for the audience. The finder works around it by expanding Spanish searches into English terms | Add a `course_name_es` column to the sheet. The page already prefers it and needs no code change. This is the single highest-value fix on the list |
-| **Free-text notes show in English** | Same cause, same fix, add `notes_es` | Sheet column |
+| ~~**Course names show in English**~~ **CLOSED in code, waiting on the sheet** | The page now reads `course_name_es` and `notes_es` when they exist, and falls back to the English columns when they do not. `courses-2026-ES.csv` carries both, with titles taken from the original Spanish programme document rather than translated back from my English | Upload `courses-2026-ES.csv` to the sheet. No code change needed |
+| **`pick()` was missing on notes** | My first pass wired the Spanish preference into course names only. Notes would have stayed English forever and nobody would have noticed until a Spanish speaker read a card. Found by testing against the real bilingual data, not by reading the code | Fixed. `pick(c, field)` now handles any column with an `_es` twin |
 | **The Spanish search map is a stopgap** | 60 or so hand-written term pairs in `app.js`. It covers what this catalogue contains. It will not cover a course nobody has thought of | Made redundant by `course_name_es` |
 | **No analytics** | I cannot tell you how many people use this or what they search for. Deliberate: analytics means consent and a lawful basis, which is Delia's call, not mine | Decide, then implement with consent |
 | **Untested with a screen reader** | I checked the markup, the labels and the live region by inspection. Nobody has driven this with NVDA or VoiceOver, and nobody over 50 has used it at all | One session with two real users beats another week of my checking |

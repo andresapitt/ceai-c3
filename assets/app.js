@@ -366,7 +366,7 @@
       /* The haystack carries both the sheet's own English words and the
          Spanish labels shown on screen, so a search works in either language. */
       var hay = [c.course_name, c.course_name_es, c.teacher, c.category, c.language,
-                 c.level, c.notes, c.venue, c.coursebook,
+                 c.level, c.notes, c.notes_es, c.venue, c.coursebook,
                  tr(CAT_ES, c.category), tr(FMT_ES, c.format),
                  tr(DAY_ES, c.day), tr(DAY_ES, c.alt_day)]
         .filter(Boolean).join(' ').toLowerCase();
@@ -375,12 +375,17 @@
   }
 
   /* --------------------------------------------------------------- render */
-  function courseTitle(c) {
-    /* Prefers a Spanish title column if the coordination team adds one.
-       No name is invented here: the sheet is the only source. */
-    if (LANG === 'es' && c.course_name_es) return c.course_name_es;
-    return c.course_name;
+  /* Any column may have an "_es" twin in the sheet. When the page is in
+     Spanish and that twin has a value, it wins. When it does not, the English
+     column shows rather than nothing. No text is invented here: the sheet is
+     the only source. Add course_name_es or notes_es to the sheet and this
+     picks them up with no code change. */
+  function pick(c, field) {
+    if (LANG === 'es' && c[field + '_es']) return c[field + '_es'];
+    return c[field] || '';
   }
+
+  function courseTitle(c) { return pick(c, 'course_name'); }
 
   function whenLabel(c) {
     var bits = [];
@@ -417,7 +422,8 @@
     if (c.capacity) out.push('<p class="card-line">' + esc(t('ui.places')) + ': <strong>' + esc(c.capacity) + '</strong></p>');
     if (c.sessions) out.push('<p class="card-line">' + esc(t('ui.sessions')) + ': <strong>' + esc(c.sessions) + '</strong></p>');
     if (c.coursebook) out.push('<p class="card-line">' + esc(t('ui.book')) + ': <strong>' + esc(c.coursebook) + '</strong></p>');
-    if (c.notes) out.push('<p class="card-note">' + esc(c.notes) + '</p>');
+    var note = pick(c, 'notes');
+    if (note) out.push('<p class="card-note">' + esc(note) + '</p>');
 
     var ask = encodeURIComponent(
       (LANG === 'es' ? 'Hola, quiero consultar por el taller: ' : 'Hello, I would like to ask about: ') + courseTitle(c)

@@ -72,9 +72,17 @@ Measured in a browser, not assumed.
 
 No carousel, no hover-only interaction, no timed content. Light and dark schemes at the same standard.
 
-## Known gaps
+## Spanish course names
 
-Course names and free-text notes render in English because the sheet stores them in English. The finder expands Spanish searches into English terms so "italiano" finds Italian I, but the real fix is a `course_name_es` column in the sheet, which this page will use automatically the moment it exists.
+Any column in the sheet may have an `_es` twin. When the page is in Spanish and the twin has a value, it wins. When it does not, the English column shows rather than nothing.
+
+Two are supported today: `course_name_es` and `notes_es`. Adding more needs no code change.
+
+`programas/courses-2026-ES.csv` carries both, with titles taken from the original Spanish programme document rather than translated back from the English. Upload it to the sheet and the page renders in Spanish on the next load.
+
+Day, area, format, level and period are translated in the page itself, so they need no columns.
+
+## Known gaps
 
 The full list is in `pipeline/04-build-notes.md`. Nothing is hidden in a code comment.
 
