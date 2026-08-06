@@ -63,22 +63,35 @@
   /* Turns a plain-text reply into safe HTML: paragraphs, simple lists, and
      phone numbers made tappable. No markdown parser, no innerHTML of model
      output without escaping first. */
+  /* The model is told to answer in plain text, but models drift back to
+     markdown, and a visitor should never be shown a literal **asterisk**.
+     Escaping happens first, so any markup here is ours, not the model's. */
+  function inline(s) {
+    return s
+      .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[\s(])_([^_\n]+)_(?=[\s.,;:!?)]|$)/g, '$1<em>$2</em>')
+      .replace(/\*\*/g, '');   // any unmatched pair left over
+  }
+
   function format(text) {
     var safe = esc(text);
     safe = safe.replace(/(\+?54\s?9?\s?351\s?3?\s?261002|351 3 261002|3543 536010)/g,
       '<a href="tel:+5493513261002">$1</a>');
     safe = safe.replace(/(info@promover\.org\.ar|aulauniversitaria@ubp\.edu\.ar)/g,
       '<a href="mailto:$1">$1</a>');
+
     var blocks = safe.split(/\n{2,}/);
     return blocks.map(function (b) {
       var lines = b.split('\n').filter(function (l) { return l.trim(); });
-      var allBullets = lines.length > 1 && lines.every(function (l) { return /^\s*[-*•]\s+/.test(l); });
-      if (allBullets) {
+      /* One bulleted line is still a list. The earlier rule needed two and
+         left single-item lists rendering with a stray dash. */
+      var bullets = lines.filter(function (l) { return /^\s*[-*•]\s+/.test(l); });
+      if (bullets.length && bullets.length === lines.length) {
         return '<ul>' + lines.map(function (l) {
-          return '<li>' + l.replace(/^\s*[-*•]\s+/, '') + '</li>';
+          return '<li>' + inline(l.replace(/^\s*[-*•]\s+/, '')) + '</li>';
         }).join('') + '</ul>';
       }
-      return '<p>' + lines.join('<br>') + '</p>';
+      return '<p>' + inline(lines.join('<br>')) + '</p>';
     }).join('');
   }
 
