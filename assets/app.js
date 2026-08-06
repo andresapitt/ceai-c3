@@ -16,7 +16,7 @@
   'use strict';
 
   var SHEET_ID = '1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM';
-  var SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json';
+  var SHEET_URL = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&headers=1';
   var PHONE = '351 3 261002';
   var WA = 'https://wa.me/5493513261002';
 

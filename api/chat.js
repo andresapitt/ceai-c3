@@ -33,8 +33,13 @@ const MONEY = new RegExp([
   '\\b(?:costs?|price|fee)\\b(?:\\W+\\w+){0,3}?\\W+\\$?\\s*\\d{3,}'
 ].join('|'), 'i');
 
+/* headers=1 is not optional. gviz guesses whether row 1 is a header by
+   comparing column types, so a sheet whose columns are ALL text (the FAQ
+   sheet) gets no header detected: the labels come back as A, B, C and every
+   field reads as undefined. The bug is silent, because the row count still
+   looks nearly right. Forcing headers=1 removes the guess. */
 const gviz = (id) =>
-  `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&nocache=${Date.now()}`;
+  `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&headers=1&nocache=${Date.now()}`;
 
 /* Google returns times as a timeofday array or a Date(...) string. Turn any
    cell back into the text a person would see in the sheet. */
@@ -57,12 +62,25 @@ async function readSheet(id) {
   if (!res.ok) throw new Error(`sheet ${id} returned HTTP ${res.status}`);
   const text = await res.text();
   const payload = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
-  const cols = payload.table.cols.map((c) => (c.label || c.id || '').trim());
+
+  let cols = payload.table.cols.map((c) => (c.label || '').trim());
   const types = payload.table.cols.map((c) => c.type || 'string');
-  return (payload.table.rows || [])
+  let rows = payload.table.rows || [];
+
+  /* Belt and braces. If headers=1 was ignored for any reason, the labels come
+     back empty and row 1 is really the header. Promote it rather than
+     returning 47 objects keyed by nothing. */
+  if (!cols.some(Boolean) && rows.length) {
+    cols = (rows[0].c || []).map((c, i) => (c && c.v ? String(c.v).trim() : 'col' + i));
+    rows = rows.slice(1);
+  }
+
+  return rows
     .map((row) => {
       const o = {};
-      cols.forEach((label, i) => { o[label] = cellText(row.c && row.c[i], types[i]); });
+      cols.forEach((label, i) => {
+        if (label) o[label] = cellText(row.c && row.c[i], types[i]);
+      });
       return o;
     })
     .filter((o) => Object.values(o).some(Boolean));
@@ -130,7 +148,18 @@ export default async function handler(req, res) {
         readSheet(COURSES_SHEET),
         FAQ_SHEET ? readSheet(FAQ_SHEET) : Promise.resolve([])
       ]);
-      sheets = { courses: courses.length, faq: faq.length, faqSheetConfigured: Boolean(FAQ_SHEET) };
+      /* The column names matter as much as the row count. A sheet can return
+         the right number of rows and still be unusable if the header was not
+         detected, which is exactly what happened to the FAQ sheet once. */
+      sheets = {
+        courses: courses.length,
+        courseColumns: courses.length ? Object.keys(courses[0]) : [],
+        faq: faq.length,
+        faqColumns: faq.length ? Object.keys(faq[0]) : [],
+        faqSheetConfigured: Boolean(FAQ_SHEET),
+        faqUsable: faq.length > 0 && Boolean(faq[0].question_es && faq[0].answer_es),
+        faqSample: faq.length ? String(faq[0].question_es || '(no question_es column)').slice(0, 80) : null
+      };
     } catch (e) { error = String(e.message || e); }
     if (hasKey) {
       try {
