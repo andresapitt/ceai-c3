@@ -23,6 +23,11 @@
      link stay hidden rather than showing an empty heading. */
   var TEACHERS_SHEET_ID = '1lVxincu--PI9M_WPri5c1gdf4A8f2ezIWWbrn4wexwA';
 
+  /* The "Lo que conviene saber" cards. Same rule as the teacher sheet: while
+     this id is empty, or if the sheet cannot be read, the section stays
+     hidden rather than showing an empty heading. */
+  var INFO_SHEET_ID = '';
+
   var gviz = function (id) {
     return 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1';
   };
@@ -33,6 +38,7 @@
   /* ---------------------------------------------------------------- state */
   var COURSES = [];
   var TEACHERS = [];
+  var INFO = [];
   var FETCHED_AT = null;
   var LANG = 'es';
 
@@ -606,6 +612,43 @@
     });
   }
 
+
+  /* ------------------------------------------------------------------ info */
+  /* The practical cards used to be hand-written in the HTML. They are policy
+     text that coordination should be able to change without touching code,
+     so they now come from a sheet like everything else. */
+  function loadInfo() {
+    if (!INFO_SHEET_ID) return Promise.resolve();
+    return readSheet(INFO_SHEET_ID)
+      .then(function (rows) {
+        INFO = rows
+          .filter(function (r) {
+            return (r.title_es || r.title_en) &&
+                   String(r.active || 'yes').toLowerCase() !== 'no';
+          })
+          .sort(function (a, b) {
+            var x = parseInt(a.sort_order, 10), y = parseInt(b.sort_order, 10);
+            if (!isNaN(x) && !isNaN(y) && x !== y) return x - y;
+            return 0;
+          });
+        if (!INFO.length) return;
+        $('#info').hidden = false;
+        renderInfo();
+      })
+      .catch(function () {
+        $('#info').hidden = true;
+      });
+  }
+
+  function renderInfo() {
+    $('#info-grid').innerHTML = INFO.map(function (r) {
+      var title = (LANG === 'es' ? r.title_es : r.title_en) || r.title_es || r.title_en || '';
+      var body = (LANG === 'es' ? r.body_es : r.body_en) || r.body_es || r.body_en || '';
+      return '<div class="info"><h3>' + esc(title) + '</h3>' +
+             (body ? '<p>' + esc(body) + '</p>' : '') + '</div>';
+    }).join('');
+  }
+
   /* --------------------------------------------------------------- theme */
   function applyTheme(dark) {
     var root = document.documentElement;
@@ -640,6 +683,7 @@
     $('#lang').setAttribute('aria-label', LANG === 'es' ? 'Switch to English' : 'Cambiar a español');
     if (COURSES.length) { buildFilters(); render(); renderWeek(); stampSource(); }
     if (TEACHERS.length) renderTeachers();
+    if (INFO.length) renderInfo();
   }
 
   /* --------------------------------------------------------------- start */
@@ -675,6 +719,6 @@
       applyLang();
     });
 
-    loadCourses().then(loadTeachers);
+    loadCourses().then(loadTeachers).then(loadInfo);
   });
 })();
