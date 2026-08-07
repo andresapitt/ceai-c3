@@ -174,6 +174,7 @@
       'nav.courses': 'Courses', 'nav.week': 'The week', 'nav.how': 'How to start', 'nav.contact': 'Contact',
       'nav.teachers': 'Teachers',
       'skip': 'Skip to the course finder',
+      'ig.label': 'aulauniversitaria on Instagram, opens in a new tab',
       'doc.title': 'aulauniversitaria | Courses for people over 50 in Córdoba',
       'find.placeholder': 'italian, painting, bridge...',
       'contact.p1': 'Phone 351 3 261002', 'contact.p2': 'Phone 3543 536010',
@@ -248,6 +249,7 @@
     },
     es: {
       'tool.lang': 'EN',
+      'ig.label': 'Instagram de aulauniversitaria, se abre en una pestaña nueva',
       'doc.title': 'aulauniversitaria | Actividades para mayores de 50 años en Córdoba',
       'find.placeholder': 'italiano, pintura, bridge...',
       'tool.themeDark': 'Cambiar a fondo oscuro',

@@ -371,3 +371,30 @@ a:hover{ color:var(--red) }
 .card-cal-btn[data-go]:hover{ border-color:#0B4E96; background:#E7F1FB }
 :root[data-theme="dark"] .card-cal-btn[data-go]{ border-color:#25415C; color:#9CC9F5 }
 :root[data-theme="dark"] .card-cal-btn[data-go]:hover{ background:#152A3E; border-color:#9CC9F5 }
+
+/* ---------- Instagram and social links ---------- */
+/* The header link is an icon only, so its accessible name comes from the
+   sr-only span. The glyph inherits colour, which keeps it correct in both
+   themes without a second asset. */
+.tool-ig{
+  display:inline-flex; align-items:center; justify-content:center;
+  text-decoration:none; color:var(--ink);
+}
+.tool-ig:hover{ border-color:var(--red); color:var(--red) }
+.ig-glyph{ display:block; flex:0 0 auto }
+
+.social{
+  display:inline-flex; align-items:center; gap:.4rem;
+  min-height:44px; margin-right:.9rem;
+  color:var(--red-dark); font-weight:600; text-decoration:none;
+}
+.social span{ text-decoration:underline; text-underline-offset:.18em }
+.social:hover{ color:var(--red) }
+
+.foot-social{ display:flex; flex-wrap:wrap; gap:.5rem 1.25rem; margin:.75rem 0 0 }
+.site-footer .social{ color:#fff }
+.site-footer .social:hover{ color:#FF97A8 }
+
+@media (max-width:760px){
+  .social{ margin-right:.6rem }
+}
