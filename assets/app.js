@@ -58,7 +58,9 @@
   var HOLIDAYS = [];      /* upcoming, for the notice */
   var HOLIDAYS_ALL = [];  /* every in-term holiday, for calendar exclusions */
   var FETCHED_AT = null;
-  var LANG = 'es';
+  /* English is the default. A visitor who switches to Spanish stays in
+     Spanish for that visit. */
+  var LANG = 'en';
 
   /* ------------------------------------------------------ display mapping */
   /* The sheet stores its enum values in English. These maps translate them for
@@ -171,6 +173,10 @@
     en: {
       'nav.courses': 'Courses', 'nav.week': 'The week', 'nav.how': 'How to start', 'nav.contact': 'Contact',
       'nav.teachers': 'Teachers',
+      'skip': 'Skip to the course finder',
+      'doc.title': 'aulauniversitaria | Courses for people over 50 in Córdoba',
+      'find.placeholder': 'italian, painting, bridge...',
+      'contact.p1': 'Phone 351 3 261002', 'contact.p2': 'Phone 3543 536010',
       'teach.title': 'Who teaches the classes',
       'teach.lead': 'Every workshop is taught by someone with a career of their own. These are their names and their background.',
       'tool.bigger': 'Make the text bigger', 'tool.lang': 'ES',
@@ -242,6 +248,8 @@
     },
     es: {
       'tool.lang': 'EN',
+      'doc.title': 'aulauniversitaria | Actividades para mayores de 50 años en Córdoba',
+      'find.placeholder': 'italiano, pintura, bridge...',
       'tool.themeDark': 'Cambiar a fondo oscuro',
       'tool.themeLight': 'Cambiar a fondo claro',
       'ui.results': 'taller', 'ui.results_p': 'talleres', 'ui.showing': 'Mostrando',
@@ -1069,6 +1077,8 @@
       el.textContent = (LANG === 'es') ? el.dataset.es : t(key);
     });
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark');
+    document.title = t('doc.title');
+    $('#q').placeholder = t('find.placeholder');
     $('#lang').textContent = (LANG === 'es') ? 'EN' : 'ES';
     $('#lang').setAttribute('aria-label', LANG === 'es' ? 'Switch to English' : 'Cambiar a español');
     if (COURSES.length) { buildFilters(); render(); renderWeek(); stampSource(); }
@@ -1080,6 +1090,7 @@
   /* --------------------------------------------------------------- start */
   document.addEventListener('DOMContentLoaded', function () {
     captureSpanish();
+    applyLang();
 
     ['#q', '#f-day', '#f-cat', '#f-fmt'].forEach(function (sel) {
       $(sel).addEventListener('input', render);
