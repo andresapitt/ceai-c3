@@ -353,12 +353,18 @@ a:hover{ color:var(--red) }
 :root[data-theme="dark"] .holidays-count{ background:#3A3018; border-color:#5A4A24; color:#E8C972 }
 
 /* ---------- calendar export ---------- */
-.card-cal{ display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; margin:.55rem 0 0 }
-.card-cal-label{ font-size:.8rem; font-weight:600; color:var(--ink-soft); width:100% }
+.card-cal{ display:flex; flex-direction:column; gap:.35rem; margin:.6rem 0 0 }
+.card-cal-label{ font-size:.8rem; font-weight:600; color:var(--ink-soft) }
+.card-cal-when{ font-size:.78rem; font-weight:700; color:var(--ink); margin-top:.2rem }
+.card-cal-pair{ display:flex; gap:.4rem }
 .card-cal-btn{
-  flex:0 1 auto; min-height:44px; padding:0 .8rem;
+  flex:1 1 0; min-height:44px; padding:0 .6rem;
   border:2px solid var(--line); border-radius:9px; background:transparent;
-  font:inherit; font-size:.85rem; font-weight:700; color:var(--ink-soft); cursor:pointer;
+  font:inherit; font-size:.82rem; font-weight:700; color:var(--ink-soft);
+  cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
-.card-cal-btn.wide{ flex:1 1 100%; }
 .card-cal-btn:hover{ border-color:var(--red); color:var(--red-dark) }
+.card-cal-btn[data-go]{ border-color:#C6DDF4; color:#0B4E96 }
+.card-cal-btn[data-go]:hover{ border-color:#0B4E96; background:#E7F1FB }
+:root[data-theme="dark"] .card-cal-btn[data-go]{ border-color:#25415C; color:#9CC9F5 }
+:root[data-theme="dark"] .card-cal-btn[data-go]:hover{ background:#152A3E; border-color:#9CC9F5 }

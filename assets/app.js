@@ -234,7 +234,9 @@
       'hol.lead': 'These are national public holidays that fall on a day we teach. There are no classes on these dates.',
       'hol.one': 'workshop', 'hol.many': 'workshops',
       'hol.check': 'Any doubt, call us on ',
-      'cal.add': 'Add to my calendar', 'cal.addDay': 'Add to calendar:',
+      'cal.add': 'Add to calendar:', 'cal.addDay': 'Add to calendar:',
+      'cal.google': 'Google Calendar', 'cal.ics': 'Download (.ics)',
+      'cal.skips': 'No class on:',
       'cal.assumed': 'Approximate duration, two hours',
       'cal.ask': 'Questions:'
     },
@@ -262,7 +264,9 @@
       'hol.lead': 'Son feriados nacionales que caen en un día que dictamos. Esas fechas no hay clases.',
       'hol.one': 'taller', 'hol.many': 'talleres',
       'hol.check': 'Ante cualquier duda, llamanos al ',
-      'cal.add': 'Agregar a mi calendario', 'cal.addDay': 'Agregar al calendario:',
+      'cal.add': 'Agregar al calendario:', 'cal.addDay': 'Agregar al calendario:',
+      'cal.google': 'Google Calendar', 'cal.ics': 'Descargar (.ics)',
+      'cal.skips': 'Sin clases el:',
       'cal.assumed': 'Duración aproximada, dos horas',
       'cal.ask': 'Consultas:'
     }
@@ -525,17 +529,25 @@
        with fixed dates, a fortnightly rhythm or no time at all gets no button
        rather than a series I would have to invent. */
     if (exportable(c)) {
-      if (c.alt_day) {
-        /* Two slots is a choice, not two classes. Offer both, labelled. */
-        out.push('<p class="card-cal"><span class="card-cal-label">' + esc(t('cal.addDay')) + '</span>' +
-          '<button type="button" class="card-cal-btn" data-cal="' + esc(c.id) + '">' +
-            esc(tr(DAY_ES, c.day)) + (c.time_display ? ' ' + esc(c.time_display) : '') + '</button>' +
-          '<button type="button" class="card-cal-btn" data-cal="' + esc(c.id) + '" data-alt="1">' +
-            esc(tr(DAY_ES, c.alt_day)) + (c.alt_time_24h ? ' ' + esc(prettyTime(c.alt_time_24h)) : '') + '</button></p>');
-      } else {
-        out.push('<p class="card-cal"><button type="button" class="card-cal-btn wide" data-cal="' +
-          esc(c.id) + '">' + esc(t('cal.add')) + '</button></p>');
+      /* Two ways to take the same event away: straight into Google Calendar,
+         or a file every other calendar app opens. */
+      function pair(alt, label) {
+        var a = alt ? ' data-alt="1"' : '';
+        return (label ? '<span class="card-cal-when">' + esc(label) + '</span>' : '') +
+          '<span class="card-cal-pair">' +
+            '<button type="button" class="card-cal-btn" data-cal="' + esc(c.id) + '" data-go="1"' + a + '>' +
+              esc(t('cal.google')) + '</button>' +
+            '<button type="button" class="card-cal-btn" data-cal="' + esc(c.id) + '"' + a + '>' +
+              esc(t('cal.ics')) + '</button>' +
+          '</span>';
       }
+      out.push('<div class="card-cal"><span class="card-cal-label">' + esc(t('cal.add')) + '</span>' +
+        (c.alt_day
+          /* Two slots is a choice, not two classes, so each gets its own pair. */
+          ? pair(false, tr(DAY_ES, c.day) + (c.time_display ? ' ' + c.time_display : '')) +
+            pair(true, tr(DAY_ES, c.alt_day) + (c.alt_time_24h ? ' ' + prettyTime(c.alt_time_24h) : ''))
+          : pair(false, '')) +
+        '</div>');
     }
     out.push('</article>');
     return out.join('');
@@ -552,7 +564,14 @@
     $('#results').querySelectorAll('.card-cal-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var c = COURSES.filter(function (x) { return x.id === btn.getAttribute('data-cal'); })[0];
-        if (c) downloadICS(c, btn.hasAttribute('data-alt'));
+        if (!c) return;
+        var alt = btn.hasAttribute('data-alt');
+        if (btn.hasAttribute('data-go')) {
+          var url = googleCalendarURL(c, alt);
+          if (url) window.open(url, '_blank', 'noopener');
+        } else {
+          downloadICS(c, alt);
+        }
       });
     });
   }
@@ -899,7 +918,12 @@
     return out + '\r\n ' + rest;
   }
 
-  function buildICS(c, useAlt) {
+  /* One calculation, two destinations. The .ics download and the Google
+     Calendar link must never disagree about when a class is, so both are
+     built from this. */
+  var TZ = 'America/Argentina/Cordoba';
+
+  function eventFor(c, useAlt) {
     var day = useAlt ? c.alt_day : c.day;
     var time = hhmm(c, useAlt);
     if (!day || !time || !ICS_DAY[day]) return null;
@@ -913,45 +937,90 @@
     if (assumed) mins = DEFAULT_MINUTES;
     var endMin = time[0] * 60 + time[1] + mins;
 
-    var startStamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
-                     'T' + pad(time[0]) + pad(time[1]) + '00';
-    var endStamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
-                   'T' + pad(Math.floor(endMin / 60) % 24) + pad(endMin % 60) + '00';
+    var ymd = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate());
+    var skipped = HOLIDAYS_ALL.filter(function (h) { return h.day === day; });
 
-    var TZ = 'America/Argentina/Cordoba';
+    return {
+      day: day,
+      title: courseTitle(c),
+      venue: c.venue || '',
+      start: ymd + 'T' + pad(time[0]) + pad(time[1]) + '00',
+      end: ymd + 'T' + pad(Math.floor(endMin / 60) % 24) + pad(endMin % 60) + '00',
+      rrule: 'FREQ=WEEKLY;BYDAY=' + ICS_DAY[day] + ';UNTIL=' + seriesEnd(c.period) + 'T235900Z',
+      exdates: skipped.map(function (h) {
+        return h.date.getFullYear() + pad(h.date.getMonth() + 1) + pad(h.date.getDate()) +
+               'T' + pad(time[0]) + pad(time[1]) + '00';
+      }),
+      skipped: skipped,
+      assumed: assumed,
+      uid: c.id + (useAlt ? '-alt' : '') + '@aulauniversitaria',
+      description: (function () {
+        var out = [];
+        if (c.teacher) out.push(t('ui.teacher') + ': ' + c.teacher);
+        if (c.period) out.push(t('ui.period') + ': ' + (LANG === 'es' ? periodEs(c.period) : c.period));
+        if (assumed) out.push(t('cal.assumed'));
+        return out;
+      })()
+    };
+  }
+
+  function buildICS(c, useAlt) {
+    var e = eventFor(c, useAlt);
+    if (!e) return null;
+
     var lines = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//aulauniversitaria//ES', 'CALSCALE:GREGORIAN',
       'BEGIN:VTIMEZONE', 'TZID:' + TZ, 'BEGIN:STANDARD', 'DTSTART:19700101T000000',
       'TZOFFSETFROM:-0300', 'TZOFFSETTO:-0300', 'TZNAME:-03', 'END:STANDARD', 'END:VTIMEZONE',
       'BEGIN:VEVENT',
-      'UID:' + c.id + (useAlt ? '-alt' : '') + '@aulauniversitaria',
+      'UID:' + e.uid,
       'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, ''),
-      'DTSTART;TZID=' + TZ + ':' + startStamp,
-      'DTEND;TZID=' + TZ + ':' + endStamp,
-      'RRULE:FREQ=WEEKLY;BYDAY=' + ICS_DAY[day] + ';UNTIL=' + seriesEnd(c.period) + 'T235900Z'
+      'DTSTART;TZID=' + TZ + ':' + e.start,
+      'DTEND;TZID=' + TZ + ':' + e.end,
+      'RRULE:' + e.rrule
     ];
+    /* A real EXDATE, which every calendar app honours: the holiday dates are
+       removed from the series outright. */
+    e.exdates.forEach(function (x) { lines.push('EXDATE;TZID=' + TZ + ':' + x); });
 
-    /* Skip the national holidays that land on this weekday. If the holidays
-       API was unreachable this list is empty, which yields a calendar with no
-       exclusions rather than one with wrong ones. */
-    HOLIDAYS_ALL.forEach(function (h) {
-      if (h.day !== day) return;
-      lines.push('EXDATE;TZID=' + TZ + ':' + h.date.getFullYear() + pad(h.date.getMonth() + 1) +
-                 pad(h.date.getDate()) + 'T' + pad(time[0]) + pad(time[1]) + '00');
-    });
-
-    var desc = [];
-    if (c.teacher) desc.push(t('ui.teacher') + ': ' + c.teacher);
-    if (c.period) desc.push(t('ui.period') + ': ' + (LANG === 'es' ? periodEs(c.period) : c.period));
-    if (assumed) desc.push(t('cal.assumed'));
-    desc.push(t('cal.ask') + ' ' + PHONE);
-
-    lines.push('SUMMARY:' + icsText(courseTitle(c)));
-    if (c.venue) lines.push('LOCATION:' + icsText(c.venue));
+    var desc = e.description.concat([t('cal.ask') + ' ' + PHONE]);
+    lines.push('SUMMARY:' + icsText(e.title));
+    if (e.venue) lines.push('LOCATION:' + icsText(e.venue));
     lines.push('DESCRIPTION:' + icsText(desc.join('. ')));
     lines.push('END:VEVENT', 'END:VCALENDAR');
 
     return lines.map(fold).join('\r\n') + '\r\n';
+  }
+
+  /* Google Calendar's template URL takes a recurrence rule, but its handling
+     of EXDATE is undocumented and it may drop the exclusions. So the dates we
+     skip are ALSO written into the description in plain words. If Google
+     honours the EXDATE the reader gets both; if it ignores it, the reader
+     still sees which dates have no class instead of silently getting a
+     reminder for one. The .ics download does not have this weakness. */
+  function googleCalendarURL(c, useAlt) {
+    var e = eventFor(c, useAlt);
+    if (!e) return null;
+
+    var recur = ['RRULE:' + e.rrule];
+    e.exdates.forEach(function (x) { recur.push('EXDATE;TZID=' + TZ + ':' + x); });
+
+    var desc = e.description.slice();
+    if (e.skipped.length) {
+      desc.push(t('cal.skips') + ' ' + e.skipped.map(function (h) {
+        return h.date.toLocaleDateString(LANG === 'es' ? 'es-AR' : 'en-IE',
+          { day: 'numeric', month: 'long' });
+      }).join(', '));
+    }
+    desc.push(t('cal.ask') + ' ' + PHONE);
+
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE' +
+      '&text=' + encodeURIComponent(e.title) +
+      '&dates=' + e.start + '/' + e.end +
+      '&ctz=' + encodeURIComponent(TZ) +
+      '&recur=' + encodeURIComponent(recur.join('\n')) +
+      (e.venue ? '&location=' + encodeURIComponent(e.venue) : '') +
+      '&details=' + encodeURIComponent(desc.join('. '));
   }
 
   function downloadICS(c, useAlt) {

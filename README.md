@@ -132,9 +132,13 @@ Columns: `id, name, teaches_es, teaches_en, bio_es, bio_en, photo_url, active, s
 
 ## Calendar export
 
-Each course card offers an `.ics` download, built in the browser from data the page already holds. No API, no server, no key. National holidays that fall on that course's weekday become `EXDATE` lines, so nobody gets a reminder for a class that is not running.
+Each course card offers two ways to take the same event away: straight into Google Calendar, or an `.ics` file every other calendar app opens. Both are built from one calculation, so they cannot disagree about when a class is.
 
-Offered only for courses the sheet describes as a real weekly slot. Fixed-date, one-off and fortnightly courses get no button rather than an invented series.
+The `.ics` is built in the browser from data the page already holds. No API, no server, no key. National holidays that fall on that course's weekday become `EXDATE` lines, so nobody gets a reminder for a class that is not running.
+
+Offered only for courses the sheet describes as a real weekly slot. Fixed-date, one-off and fortnightly courses get no buttons rather than an invented series. The three courses with two alternative slots get a labelled pair each, because Monday 4pm or Tuesday 9am is a choice, not two classes.
+
+**A difference worth knowing.** The `.ics` carries a real `EXDATE`, so holiday dates are removed from the series outright and no calendar app will remind anyone about them. Google's template URL takes the same exclusions, but its handling of them is undocumented and it may drop them. So the skipped dates are also written into the event description in plain words. If Google honours the exclusions the reader gets both; if it ignores them, the reader still sees which dates have no class. The download is the stronger of the two.
 
 ### duration_min
 
