@@ -357,11 +357,14 @@ a:hover{ color:var(--red) }
 .card-cal-label{ font-size:.8rem; font-weight:600; color:var(--ink-soft) }
 .card-cal-when{ font-size:.78rem; font-weight:700; color:var(--ink); margin-top:.2rem }
 .card-cal-pair{ display:flex; gap:.4rem }
+/* Applies to both the anchor and the button so the pair looks identical. */
 .card-cal-btn{
+  display:inline-flex; align-items:center; justify-content:center;
   flex:1 1 0; min-height:44px; padding:0 .6rem;
   border:2px solid var(--line); border-radius:9px; background:transparent;
   font:inherit; font-size:.82rem; font-weight:700; color:var(--ink-soft);
   cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  text-decoration:none;
 }
 .card-cal-btn:hover{ border-color:var(--red); color:var(--red-dark) }
 .card-cal-btn[data-go]{ border-color:#C6DDF4; color:#0B4E96 }

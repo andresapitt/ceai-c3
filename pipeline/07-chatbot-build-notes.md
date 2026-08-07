@@ -96,6 +96,18 @@ It failed silently. The selftest reported `faq: 36` against 35 uploaded rows, wh
 
 Fixed by forcing `headers=1` on both the API and the front end, with a fallback that promotes row 1 if labels ever come back empty anyway. The selftest now reports the detected column names, whether the FAQ is usable, and a sample question, because a row count was never going to catch this.
 
+## 6c. The bug my own testing could not have caught
+
+The Google Calendar button did nothing when clicked. It was reported by the person using the site, not found by me, and the reason is worth writing down.
+
+I had tested the button by overriding `window.open` and inspecting the URL it was called with. That confirmed the URL was correct, and it was. What it could not confirm was whether the browser would honour the call, because my override replaced the very thing that was failing.
+
+`window.open(url, '_blank', 'noopener')` returns `null` in Chrome. Passing a features string makes it a request for a popup window rather than a tab, and the popup blocker refuses it. Nothing is thrown, nothing appears in the console, and the visitor sees a control that does nothing at all.
+
+The fix was not a better `window.open` call. It was recognising that the control had been built as the wrong thing: opening Google Calendar is navigation, so it is an anchor with `target="_blank"`, which no blocker intercepts and which also gains middle-click and "open in new tab" for free. The `.ics` control stays a button, because generating a file really is an action.
+
+The lesson for the next integration: a test that stubs the browser API under test proves the argument, not the outcome.
+
 ## 7. Three bugs I found by testing, not by reading
 
 1. **The send button hung 15px off the right edge at 375px.** Flexbox defaults a flex item to `min-width:auto`, so the text input refused to shrink and pushed the button off screen. `min-width:0` on the input. Invisible on desktop, and the single most-used control on a phone.

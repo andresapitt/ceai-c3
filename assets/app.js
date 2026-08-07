@@ -531,12 +531,21 @@
     if (exportable(c)) {
       /* Two ways to take the same event away: straight into Google Calendar,
          or a file every other calendar app opens. */
+      /* Google is a real link, not a button. window.open with a features
+         string is treated as a popup by Chrome and gets blocked silently:
+         it returns null, throws nothing, and the visitor sees a button that
+         does nothing. An anchor is never blocked, works with middle-click
+         and "open in new tab", and is honest about being navigation.
+         The .ics stays a button, because generating a file is an action. */
       function pair(alt, label) {
         var a = alt ? ' data-alt="1"' : '';
+        var href = googleCalendarURL(c, alt);
         return (label ? '<span class="card-cal-when">' + esc(label) + '</span>' : '') +
           '<span class="card-cal-pair">' +
-            '<button type="button" class="card-cal-btn" data-cal="' + esc(c.id) + '" data-go="1"' + a + '>' +
-              esc(t('cal.google')) + '</button>' +
+            (href
+              ? '<a class="card-cal-btn" data-go="1" href="' + esc(href) +
+                '" target="_blank" rel="noopener">' + esc(t('cal.google')) + '</a>'
+              : '') +
             '<button type="button" class="card-cal-btn" data-cal="' + esc(c.id) + '"' + a + '>' +
               esc(t('cal.ics')) + '</button>' +
           '</span>';
@@ -561,17 +570,11 @@
     $('#count').textContent = t('ui.showing') + ' ' + list.length + ' ' +
       (list.length === 1 ? t('ui.results') : t('ui.results_p'));
 
-    $('#results').querySelectorAll('.card-cal-btn').forEach(function (btn) {
+    /* Only the download needs a handler now: the Google option is an anchor. */
+    $('#results').querySelectorAll('button.card-cal-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var c = COURSES.filter(function (x) { return x.id === btn.getAttribute('data-cal'); })[0];
-        if (!c) return;
-        var alt = btn.hasAttribute('data-alt');
-        if (btn.hasAttribute('data-go')) {
-          var url = googleCalendarURL(c, alt);
-          if (url) window.open(url, '_blank', 'noopener');
-        } else {
-          downloadICS(c, alt);
-        }
+        if (c) downloadICS(c, btn.hasAttribute('data-alt'));
       });
     });
   }
