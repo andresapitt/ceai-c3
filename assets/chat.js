@@ -14,7 +14,17 @@
 
   var PHONE = '351 3 261002';
   var WA = 'https://wa.me/5493513261002';
-  var ENDPOINT = '/api/chat';
+  /* GitHub Pages serves static files only: it cannot run the serverless
+     function, so /api/chat would 404 there and the assistant would sit in
+     its offline state. When the page is served from anywhere that has no
+     function of its own, it talks to the Vercel deployment instead, which
+     allows that origin explicitly. Same code, both hosts, one API. */
+  var API_ORIGIN = 'https://ceai-c3.vercel.app';
+  var ENDPOINT = (function () {
+    var h = location.hostname || '';
+    var noFunctions = h.indexOf('github.io') !== -1 || location.protocol === 'file:';
+    return noFunctions ? API_ORIGIN + '/api/chat' : '/api/chat';
+  })();
 
   var history = [];
   var busy = false;

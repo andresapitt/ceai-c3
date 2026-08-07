@@ -153,6 +153,27 @@ A plain whole number of **minutes**, in a `duration_min` column on the courses s
 
 Format the column as **plain text or number, not Duration**. Sheets' own Duration format sends `02:00`, and `2 horas` is a natural thing to type: both would once have produced a two-minute class. The parser now accepts minutes, `H:MM` and `H:MM:SS`, and rejects anything outside 20 to 480 minutes, falling back to the labelled default instead.
 
+## Hosting
+
+The site runs on two hosts from one codebase.
+
+| Host | Serves | Assistant |
+|---|---|---|
+| **Vercel** | the page and `/api/chat` | its own function |
+| **GitHub Pages** | the page only | calls the Vercel function cross-origin |
+
+GitHub Pages cannot run a serverless function, so a static-only deploy would leave the assistant permanently in its offline state. Instead `assets/chat.js` detects that it is on `github.io` and calls the Vercel endpoint, which allows that origin by name. Everything else, the four sheets and the holidays API, is read directly from the browser and works identically on both.
+
+### GitHub Pages settings
+
+Source must be **Deploy from a branch, `main`, `/ (root)`**. Pointing it at `/docs` fails the build, because there is no `docs` folder:
+
+```
+Error: No such file or directory @ dir_chdir0 - /github/workspace/docs
+```
+
+`.nojekyll` at the repo root stops Pages running Jekyll over the site. Nothing here needs it: the files are already the finished thing, and a Jekyll pass only adds a build that can fail.
+
 ## Theme
 
 Light is the default for everyone. The operating system's dark-mode preference is deliberately not consulted, because the organisation chose white.

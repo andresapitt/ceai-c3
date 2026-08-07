@@ -335,8 +335,31 @@ Reglas de las tarjetas:
 
 Sos un asistente automático, no una persona, y el visitante ya lo sabe porque se lo dijimos al abrir el chat.`;
 
+/* The GitHub Pages copy of the site has no serverless function of its own, so
+   it calls this one cross-origin. An allowlist rather than a wildcard: this
+   endpoint spends Gemini quota, and there is no reason for any other site to
+   be able to spend it. */
+const ALLOWED_ORIGINS = [
+  'https://andresapitt.github.io'
+];
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
+
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.indexOf(origin) !== -1) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+
+  /* Answer the preflight before the rate limiter, so a browser checking
+     whether it may POST does not consume the visitor's allowance. */
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Max-Age', '86400');
+    return res.status(204).end();
+  }
 
   /* Applies to the selftest too. It reads two sheets and lists models, so it
      is not a free endpoint either. */
