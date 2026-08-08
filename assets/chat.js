@@ -50,7 +50,10 @@
       micNoDevice: 'No encontramos un micrófono. Escribí tu pregunta y te respondemos igual.',
       micNoSpeech: 'No se escuchó nada. Probá de nuevo o escribí tu pregunta.',
       micFailed: 'No se pudo transcribir. Probá de nuevo o escribí tu pregunta.',
-      thinking: 'Buscando en los talleres...',
+      /* Shown before the reply exists, so it cannot know what kind of question
+         this is. "Buscando en los talleres" was a claim, and it was wrong for
+         every question about aranceles, certificados, feriados or inscripción. */
+      thinking: 'Buscando la respuesta...',
       suggest: ['¿Cuánto cuesta?', '¿Puedo probar una clase antes?', '¿Qué talleres hay los martes?', '¿Dónde son las clases?'],
       offline: 'El asistente no está disponible en esta dirección. Escribinos por WhatsApp al ' + PHONE + ' y te respondemos.',
       wa: 'Escribir por WhatsApp',
@@ -75,7 +78,7 @@
       micNoDevice: 'We could not find a microphone. Type your question and we will answer just the same.',
       micNoSpeech: 'We did not hear anything. Try again, or type your question.',
       micFailed: 'We could not transcribe that. Try again, or type your question.',
-      thinking: 'Looking through the courses...',
+      thinking: 'Looking that up...',
       suggest: ['How much does it cost?', 'Can I try a class first?', 'What is on on Tuesdays?', 'Where are the classes?'],
       offline: 'The assistant is not available at this address. Message us on WhatsApp at ' + PHONE + ' and we will reply.',
       wa: 'Message on WhatsApp',
