@@ -441,6 +441,22 @@
 
   function toggle() { panel.hidden ? open() : close(); }
 
+  /* Where to leave the panel once an answer has landed.
+     A course question can render eight cards, which is around 2400px of
+     content in a panel 400px tall. Scrolling to the bottom, which is right
+     while the answer is still arriving, leaves the visitor standing on the
+     last card with the answer some two thousand pixels above them and no
+     indication it is there. Put the top of the reply at the top of the log
+     instead: the answer is read first and the cards are scrolled through
+     rather than scrolled back from.
+     Measured against the log rather than offsetTop, which would depend on
+     which ancestor happens to be positioned. */
+  function revealAnswer(el) {
+    if (!el || !el.isConnected) { log.scrollTop = log.scrollHeight; return; }
+    var delta = el.getBoundingClientRect().top - log.getBoundingClientRect().top;
+    log.scrollTop = Math.max(0, log.scrollTop + delta - 8);
+  }
+
   function send(text) {
     text = String(text || '').trim();
     if (!text || busy) return;
@@ -486,7 +502,7 @@
         busy = false;
         sendBtn.disabled = false;
         input.focus();
-        log.scrollTop = log.scrollHeight;
+        revealAnswer(pending);
       });
   }
 
