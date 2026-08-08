@@ -44,6 +44,33 @@
   var TERM_END   = '2026-11-30';
   var MAX_NOTICES = 3;
 
+  /* Flags for the language toggle.
+     Not emoji. Windows has never shipped the regional-indicator glyphs, so a
+     flag emoji renders there as the bare letter pair "AR" or "GB", which is
+     worse than the "ES" it replaced. Inline SVG renders everywhere, needs no
+     request and survives the content security policy.
+     Both are drawn in the same 3:2 box so the button does not change width
+     when the language changes. The Union Jack is normally 2:1; at 26px the
+     proportion is not what anyone is reading. */
+  var FLAG_AR =
+    '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true" focusable="false">' +
+      '<rect width="30" height="20" fill="#fff"/>' +
+      '<rect width="30" height="6.67" fill="#75AADB"/>' +
+      '<rect y="13.33" width="30" height="6.67" fill="#75AADB"/>' +
+      '<circle cx="15" cy="10" r="2.4" fill="#FCBF49" stroke="#843511" stroke-width=".35"/>' +
+    '</svg>';
+  var FLAG_GB =
+    '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true" focusable="false">' +
+      '<clipPath id="uk-counterchange">' +
+        '<path d="M15,10 h15 v10 z v10 h-15 z h-15 v-10 z v-10 h15 z"/>' +
+      '</clipPath>' +
+      '<rect width="30" height="20" fill="#012169"/>' +
+      '<path d="M0,0 L30,20 M30,0 L0,20" stroke="#fff" stroke-width="4"/>' +
+      '<path d="M0,0 L30,20 M30,0 L0,20" clip-path="url(#uk-counterchange)" stroke="#C8102E" stroke-width="2.4"/>' +
+      '<path d="M15,0 V20 M0,10 H30" stroke="#fff" stroke-width="6.6"/>' +
+      '<path d="M15,0 V20 M0,10 H30" stroke="#C8102E" stroke-width="4"/>' +
+    '</svg>';
+
   var gviz = function (id) {
     return 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1';
   };
@@ -180,7 +207,8 @@
       'contact.p1': 'Phone 351 3 261002', 'contact.p2': 'Phone 3543 536010',
       'teach.title': 'Who teaches the classes',
       'teach.lead': 'Every workshop is taught by someone with a career of their own. These are their names and their background.',
-      'tool.bigger': 'Make the text bigger', 'tool.lang': 'ES',
+      'tool.bigger': 'Make the text bigger',
+      'nav.menu': 'Menu', 'nav.menuClose': 'Close',
       'tool.themeDark': 'Switch to a dark background',
       'tool.themeLight': 'Switch to a light background',
       'hero.kicker': 'Asociación Civil Promover and Universidad Blas Pascal',
@@ -248,7 +276,7 @@
       'cal.ask': 'Questions:'
     },
     es: {
-      'tool.lang': 'EN',
+      'nav.menu': 'Menú', 'nav.menuClose': 'Cerrar',
       'ig.label': 'Instagram de aulauniversitaria, se abre en una pestaña nueva',
       'doc.title': 'aulauniversitaria | Actividades para mayores de 50 años en Córdoba',
       'find.placeholder': 'italiano, pintura, bridge...',
@@ -1072,6 +1100,96 @@
     });
   }
 
+  /* ---------------------------------------------------------- small-screen menu
+   *
+   * Replaces a horizontally scrolling row of links. The state lives in one
+   * place, the `hidden` attribute on the nav, and `syncNav` is the only thing
+   * that writes it. Everything else asks syncNav to run again.
+   *
+   * `hidden` is used rather than a class because the nav must be genuinely
+   * removed from the accessibility tree when closed, not merely invisible.
+   * The stylesheet answers it explicitly with `.site-nav[hidden]{display:none}`,
+   * because an author `display` rule beats the attribute otherwise. That has
+   * already shipped as a defect twice on this site.
+   */
+  var NARROW = window.matchMedia('(max-width:760px)');
+  var menuOpen = false;
+
+  function syncNav() {
+    var nav = $('#site-nav'), btn = $('#nav-toggle');
+    if (!nav || !btn) return;
+
+    if (!NARROW.matches) {
+      /* Wide: there is no menu, only a row of links. Any open state is
+         discarded rather than remembered, so returning to a narrow width
+         does not reopen a menu nobody asked for. */
+      menuOpen = false;
+      btn.hidden = true;
+      nav.hidden = false;
+      btn.setAttribute('aria-expanded', 'false');
+      return;
+    }
+
+    btn.hidden = false;
+    nav.hidden = !menuOpen;
+    btn.setAttribute('aria-expanded', String(menuOpen));
+    btn.querySelector('.nav-toggle-text').textContent = t(menuOpen ? 'nav.menuClose' : 'nav.menu');
+    btn.setAttribute('aria-label', t(menuOpen ? 'nav.menuClose' : 'nav.menu'));
+  }
+
+  function setMenu(open, restoreFocus) {
+    menuOpen = open;
+    syncNav();
+    if (open) {
+      var first = $('#site-nav').querySelector('a:not([hidden])');
+      if (first) first.focus();
+    } else if (restoreFocus) {
+      $('#nav-toggle').focus();
+    }
+  }
+
+  function wireNav() {
+    var nav = $('#site-nav'), btn = $('#nav-toggle');
+
+    btn.addEventListener('click', function () { setMenu(!menuOpen, !menuOpen ? false : true); });
+
+    /* Choosing a destination is the end of using the menu. Leaving it open
+       over the section you just asked for is the most common way this
+       pattern goes wrong. */
+    nav.addEventListener('click', function (e) {
+      if (e.target.closest('a') && NARROW.matches) setMenu(false, false);
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && menuOpen) setMenu(false, true);
+    });
+
+    /* Clicking the page closes the menu. The header tools do not count as
+       "the page": someone who opens the menu and then presses A+ is making
+       the menu easier to read, and closing it on them is the opposite of
+       what they asked for. The same goes for the language and theme buttons,
+       whose whole effect is on the menu they are looking at. */
+    document.addEventListener('click', function (e) {
+      if (!menuOpen) return;
+      if (nav.contains(e.target) || btn.contains(e.target)) return;
+      if (e.target.closest && e.target.closest('.header-tools')) return;
+      setMenu(false, false);
+    });
+
+    /* Crossing the breakpoint, by rotating a phone or dragging a window edge.
+       Two listeners for one job, deliberately:
+       - `change` on the media query is the correct event and fires once.
+       - `resize` is the belt and braces. It costs one comparison per event,
+         because syncNav reads NARROW.matches rather than trusting the caller.
+       `addListener` is the old spelling, kept because Safari only accepted
+       the modern one from version 14, and this audience keeps devices. */
+    if (NARROW.addEventListener) NARROW.addEventListener('change', syncNav);
+    else if (NARROW.addListener) NARROW.addListener(syncNav);
+    window.addEventListener('resize', syncNav);
+
+    syncNav();
+  }
+
   function applyLang() {
     document.documentElement.lang = LANG;
     document.querySelectorAll('[data-i18n]').forEach(function (el) {
@@ -1081,8 +1199,15 @@
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark');
     document.title = t('doc.title');
     $('#q').placeholder = t('find.placeholder');
-    $('#lang').textContent = (LANG === 'es') ? 'EN' : 'ES';
+    /* The button shows the language you would be switching TO, which is why
+       the Spanish page carries the British flag and not the other way round.
+       A flag is a weaker signifier than "ES": it names a country, not a
+       language. The label and the tooltip carry the actual meaning, and they
+       are what a screen reader reads out. */
+    $('#lang').innerHTML = (LANG === 'es') ? FLAG_GB : FLAG_AR;
     $('#lang').setAttribute('aria-label', LANG === 'es' ? 'Switch to English' : 'Cambiar a español');
+    $('#lang').title = LANG === 'es' ? 'Switch to English' : 'Cambiar a español';
+    syncNav();   // the menu button carries a word, so it changes with the language
     if (COURSES.length) { buildFilters(); render(); renderWeek(); stampSource(); }
     if (TEACHERS.length) renderTeachers();
     if (INFO.length) renderInfo();
@@ -1092,6 +1217,7 @@
   /* --------------------------------------------------------------- start */
   document.addEventListener('DOMContentLoaded', function () {
     captureSpanish();
+    wireNav();
     applyLang();
 
     ['#q', '#f-day', '#f-cat', '#f-fmt'].forEach(function (sel) {

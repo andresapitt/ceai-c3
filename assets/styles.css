@@ -103,6 +103,46 @@ a:hover{ color:var(--red) }
 .tool:hover{ border-color:var(--ink) }
 .tool[aria-pressed="true"]{ background:var(--ink); color:#fff; border-color:var(--ink) }
 
+/* ---------- the small-screen menu ----------
+   It used to be a horizontally scrolling strip of links. Links sat off the
+   right edge with nothing to say they were there, and sideways scrolling is
+   the least discoverable gesture on a phone. This audience was never going to
+   find Contacto.
+
+   The button carries the word as well as the bars. The three-line icon is
+   understood by people who grew up with it and often not by people who did
+   not, and this site is built for the second group. The word costs about
+   forty pixels and it only appears on small screens. */
+.nav-toggle{
+  display:inline-flex; align-items:center; gap:.5rem;
+  min-height:48px; padding:0 .8rem;
+  border:2px solid var(--line); border-radius:10px; background:#fff;
+  font:inherit; font-size:.95rem; font-weight:700; color:var(--ink); cursor:pointer;
+}
+.nav-toggle[hidden]{ display:none }
+.nav-toggle:hover{ border-color:var(--ink) }
+.nav-toggle-bars{ display:block; width:20px; height:14px; position:relative; flex:0 0 auto }
+.nav-toggle-bars span{
+  position:absolute; left:0; width:100%; height:2.5px; border-radius:2px;
+  background:currentColor; transition:transform .18s ease, opacity .18s ease;
+}
+.nav-toggle-bars span:nth-child(1){ top:0 }
+.nav-toggle-bars span:nth-child(2){ top:5.75px }
+.nav-toggle-bars span:nth-child(3){ top:11.5px }
+/* Open, the bars become a cross, so the same control visibly closes it. */
+.nav-toggle[aria-expanded="true"]{ background:var(--ink); color:#fff; border-color:var(--ink) }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(1){ transform:translateY(5.75px) rotate(45deg) }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(2){ opacity:0 }
+.nav-toggle[aria-expanded="true"] .nav-toggle-bars span:nth-child(3){ transform:translateY(-5.75px) rotate(-45deg) }
+:root[data-theme="dark"] .nav-toggle{ background:#201E1C }
+:root[data-theme="dark"] .nav-toggle[aria-expanded="true"]{ background:var(--ink); color:#17110F }
+
+/* The Argentine flag is half white, so it needs its own edge to sit against a
+   white button. The hairline is the flag's border, not the button's. */
+.tool-lang{ padding:0 .5rem }
+.flag{ display:block; width:26px; height:auto; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.25) }
+:root[data-theme="dark"] .flag{ box-shadow:0 0 0 1px rgba(255,255,255,.35) }
+
 /* Between the mobile layout and full width, the brand, five nav links and
    four tools compete for one row, and the tools were the ones dropping to a
    second line. Tighten the nav instead: losing a little padding costs less
@@ -297,9 +337,20 @@ a:hover{ color:var(--red) }
   .header-inner{ gap:.5rem; padding:.5rem 0 }
   .brand-mark{ height:1.5rem }
   .brand-tag{ font-size:.6rem; margin-top:-.1rem }
-  .site-nav{ order:3; width:100%; margin-left:0; gap:0; justify-content:space-between; overflow-x:auto }
-  .site-nav a{ min-height:44px; padding:0 .45rem; font-size:.82rem; white-space:nowrap }
-  .header-tools{ margin-left:auto }
+  /* Full-width stack under the header. Every link is a row you can hit
+     without aiming, and nothing is hidden off the side of the screen. */
+  .site-nav{
+    order:4; width:100%; margin-left:0; margin-top:.5rem; padding-top:.5rem;
+    flex-direction:column; gap:.25rem; overflow:visible;
+    border-top:1px solid var(--line);
+  }
+  .site-nav[hidden]{ display:none }
+  .site-nav a{
+    min-height:52px; padding:0 .75rem; font-size:1rem; white-space:normal;
+    border-radius:10px; background:var(--paper-alt);
+  }
+  .nav-toggle{ order:2 }
+  .header-tools{ order:3; margin-left:auto }
   .tool{ min-height:44px; min-width:44px; padding:0 .55rem; font-size:.85rem }
   .hero-inner{ padding:2rem 0 2rem }
   .hero-facts{ gap:1.5rem }
