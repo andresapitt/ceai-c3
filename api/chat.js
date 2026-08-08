@@ -336,18 +336,26 @@ Reglas de las tarjetas:
 Sos un asistente automático, no una persona, y el visitante ya lo sabe porque se lo dijimos al abrir el chat.`;
 
 /* The GitHub Pages copy of the site has no serverless function of its own, so
-   it calls this one cross-origin. An allowlist rather than a wildcard: this
-   endpoint spends Gemini quota, and there is no reason for any other site to
-   be able to spend it. */
+   it calls this one cross-origin. Localhost is allowed too, so the site can be
+   run and tested locally with a working assistant rather than a dead one.
+   An allowlist rather than a wildcard, and worth being clear about what that
+   does and does not buy: CORS only constrains browsers, so it is no defence
+   against a script posting directly. The rate limiter is the actual
+   protection. The allowlist keeps casual embedding on other sites out. */
 const ALLOWED_ORIGINS = [
   'https://andresapitt.github.io'
 ];
+const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function originAllowed(origin) {
+  return !!origin && (ALLOWED_ORIGINS.indexOf(origin) !== -1 || LOCAL_ORIGIN.test(origin));
+}
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
 
   const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.indexOf(origin) !== -1) {
+  if (originAllowed(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
