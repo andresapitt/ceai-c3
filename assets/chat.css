@@ -204,6 +204,19 @@
 }
 .chat-card-ask:hover{ background:var(--red); color:#fff }
 
+/* Compact form, used at five results or more. The detail rows are dropped
+   in the markup, so this only tightens what is left. The enquiry link is
+   deliberately not shrunk: it is the handoff to a person. */
+.chat-cards-count{
+  margin:0 0 -.25rem; font-size:.78rem; font-weight:700;
+  color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em;
+}
+.chat-cards.is-compact{ gap:.5rem }
+.chat-cards.is-compact .chat-card{ padding:.6rem .75rem }
+.chat-cards.is-compact .chat-card h3{ margin-bottom:.4rem; font-size:.93rem }
+.chat-cards.is-compact .chat-card-chips{ margin-bottom:.15rem }
+.chat-cards.is-compact .chat-card-ask{ margin-top:.5rem }
+
 :root[data-theme="dark"] .chat-card{ background:#201E1C }
 :root[data-theme="dark"] .chat-chip-tag{ background:#2A2724 }
 :root[data-theme="dark"] .chat-chip-tag.when{ background:#3A1D22; color:#FFB3BE; border-color:#5A2B33 }

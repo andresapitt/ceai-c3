@@ -59,7 +59,8 @@
       wa: 'Escribir por WhatsApp',
       you: 'Vos', bot: 'Asistente',
       cAlso: 'También', cTeacher: 'Profesor', cLevel: 'Nivel',
-      cPeriod: 'Período', cPlaces: 'Cupo', cAsk: 'Consultar por este taller'
+      cPeriod: 'Período', cPlaces: 'Cupo', cAsk: 'Consultar por este taller',
+      cMany: 'talleres'
     },
     en: {
       launch: 'Ask us anything',
@@ -84,7 +85,8 @@
       wa: 'Message on WhatsApp',
       you: 'You', bot: 'Assistant',
       cAlso: 'Also', cTeacher: 'Teacher', cLevel: 'Level',
-      cPeriod: 'Period', cPlaces: 'Places', cAsk: 'Ask about this course'
+      cPeriod: 'Period', cPlaces: 'Places', cAsk: 'Ask about this course',
+      cMany: 'courses'
     }
   };
 
@@ -357,9 +359,27 @@
 
   /* Course cards. Every value here arrives from the server already read out
      of the sheet, so nothing on a card is the model's wording. */
+  /* Below five results someone is deciding, and deciding needs the teacher,
+     the level and the period. At five or more they are scanning to find the
+     two or three worth a closer look, and everything that does not help them
+     narrow the list is in the way. See pipeline/14-compact-card-spec.md. */
+  var COMPACT_AT = 5;
+
   function cardsBlock(cards) {
+    var compact = cards.length >= COMPACT_AT;
+
+    /* The count sits outside the element carrying role="list", because a
+       paragraph inside a list role is not valid. It answers "how much is
+       below me" before anyone starts scrolling. */
+    if (compact) {
+      var count = document.createElement('p');
+      count.className = 'chat-cards-count';
+      count.textContent = cards.length + ' ' + t('cMany');
+      log.appendChild(count);
+    }
+
     var box = document.createElement('div');
-    box.className = 'chat-cards';
+    box.className = 'chat-cards' + (compact ? ' is-compact' : '');
     box.setAttribute('role', 'list');
 
     cards.forEach(function (c) {
@@ -373,7 +393,10 @@
         c.category ? '<span class="chat-chip-tag">' + esc(c.category) + '</span>' : ''
       ].filter(Boolean).join('');
 
-      var lines = [
+      /* Nothing here is lost in the compact form: it is all on the page in
+         the finder, and one tap away through the enquiry link, which stays
+         on every card at full size because it is the handoff to a person. */
+      var lines = compact ? '' : [
         c.altWhen ? row(t('cAlso'), c.altWhen) : '',
         c.teacher ? row(t('cTeacher'), c.teacher) : '',
         c.level ? row(t('cLevel'), c.level) : '',

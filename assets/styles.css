@@ -71,30 +71,61 @@ a:hover{ color:var(--red) }
   backdrop-filter:saturate(180%) blur(8px);
   border-bottom:1px solid var(--line);
 }
-.header-inner{ display:flex; align-items:center; gap:1.5rem; padding:.85rem 0; flex-wrap:wrap }
+/* The header keeps the same measure as the body, so the logo lines up with the
+   hero text underneath it. Widening the bar to fit the tools was tried and
+   looked wrong: the brand sat over a hundred pixels left of everything else on
+   the page. The room comes out of the controls instead. */
+.header-inner{ display:flex; align-items:center; gap:.6rem; padding:.85rem 0; flex-wrap:wrap }
 
 .brand{ display:flex; flex-direction:column; text-decoration:none; flex:0 0 auto }
-.brand-mark{ display:block; height:2.1rem; width:auto }
+.brand-mark{ display:block; height:1.95rem; width:auto }
 .brand-tag{
   align-self:flex-end; margin-top:-.15rem; margin-right:.15rem;
   color:var(--red); font-size:.72rem; font-style:italic; font-weight:600; letter-spacing:.01em
 }
 
-.site-nav{ display:flex; gap:.35rem; margin-left:auto; flex-wrap:wrap }
+/* nowrap on the links, so a long Spanish label like "Cómo empezar" breaks the
+   row rather than breaking mid-phrase. The nav shrinks as a block instead. */
+.site-nav{ display:flex; gap:.2rem; margin-left:auto; flex-wrap:nowrap }
 .site-nav a{
-  display:inline-flex; align-items:center; min-height:48px; padding:0 .85rem;
-  border-radius:10px; color:var(--ink); text-decoration:none; font-weight:600; font-size:.92rem
+  display:inline-flex; align-items:center; min-height:48px; padding:0 .55rem;
+  border-radius:10px; color:var(--ink); text-decoration:none; font-weight:600; font-size:.92rem;
+  white-space:nowrap
 }
 .site-nav a:hover{ background:var(--paper-alt); color:var(--red-dark) }
 
 .header-tools{ display:flex; gap:.5rem }
 .tool{
-  min-height:48px; min-width:48px; padding:0 .8rem;
+  min-height:48px; min-width:48px; padding:0 .65rem;
   border:2px solid var(--line); border-radius:10px; background:#fff;
   font:inherit; font-size:.92rem; font-weight:700; color:var(--ink); cursor:pointer
 }
 .tool:hover{ border-color:var(--ink) }
 .tool[aria-pressed="true"]{ background:var(--ink); color:#fff; border-color:var(--ink) }
+
+/* Between the mobile layout and full width, the brand, five nav links and
+   four tools compete for one row, and the tools were the ones dropping to a
+   second line. Tighten the nav instead: losing a little padding costs less
+   than the header doubling in height. Spanish is the tighter case, its
+   labels are longer than the English ones. */
+@media (max-width:1220px){
+  .header-inner{ gap:.5rem }
+  .site-nav{ gap:0 }
+  .site-nav a{ padding:0 .35rem; font-size:.87rem }
+  .tool{ min-width:46px; padding:0 .5rem; font-size:.88rem }
+  .brand-mark{ height:1.85rem }
+}
+/* Below about 1080px the five nav links and four tools cannot share a row in
+   Spanish, whose labels are longer, without shrinking the text past what this
+   audience should have to read. So give the nav its own row deliberately, with
+   the brand and the tools together above it. That is the same shape the mobile
+   layout uses. The failure it replaces is the tools dropping to a second line
+   on their own, which is what wrapping does when nobody has decided anything. */
+@media (min-width:761px) and (max-width:1120px){
+  .site-nav{ order:3; width:100%; margin-left:0; justify-content:flex-start; gap:.1rem }
+  .site-nav a{ padding:0 .6rem; font-size:.9rem }
+  .header-tools{ margin-left:auto }
+}
 
 /* ---------- hero ---------- */
 .hero{ background:linear-gradient(180deg,var(--paper-alt),var(--paper)); border-bottom:1px solid var(--line) }
