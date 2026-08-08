@@ -100,6 +100,47 @@
 .chat-send:hover{ background:var(--red-dark); border-color:var(--red-dark) }
 .chat-send:disabled{ opacity:.55; cursor:default }
 
+/* ---------- dictation ----------
+   Same 48px target as the input and the send button (criterion 8). The
+   [hidden] rules are not decoration: this file sets display on both
+   elements, and an author display rule beats the hidden attribute unless
+   it is answered explicitly. That has caught us three times already. */
+.chat-mic{
+  flex:0 0 auto;
+  display:inline-flex; align-items:center; justify-content:center;
+  width:48px; min-height:48px; padding:0;
+  border:2px solid var(--line); border-radius:10px;
+  background:var(--paper); color:var(--ink-soft); cursor:pointer;
+}
+.chat-mic[hidden]{ display:none }
+.chat-mic svg{ width:22px; height:22px; display:block }
+.chat-mic:hover{ border-color:var(--red); color:var(--red-dark) }
+.chat-mic.is-listening{
+  background:var(--red); border-color:var(--red); color:#fff;
+  animation:chat-mic-pulse 1.5s ease-out infinite;
+}
+/* The global reduced-motion rule in styles.css already kills this. The
+   button stays filled and the status line still says what is happening,
+   so the state survives without the animation. */
+@keyframes chat-mic-pulse{
+  0%{ box-shadow:0 0 0 0 rgba(176,14,40,.5) }
+  70%,100%{ box-shadow:0 0 0 8px rgba(176,14,40,0) }
+}
+
+.chat-mic-status{
+  margin:0; padding:.5rem 1rem 0; flex:0 0 auto;
+  font-size:.84rem; line-height:1.45; font-weight:600;
+  color:var(--red-dark); background:var(--paper);
+}
+.chat-mic-status[hidden]{ display:none }
+
+:root[data-theme="dark"] .chat-mic.is-listening{ color:#17110F }
+:root[data-theme="dark"] .chat-mic.is-listening{ animation-name:chat-mic-pulse-dark }
+@keyframes chat-mic-pulse-dark{
+  0%{ box-shadow:0 0 0 0 rgba(255,96,118,.5) }
+  70%,100%{ box-shadow:0 0 0 8px rgba(255,96,118,0) }
+}
+
 .chat-privacy{
   margin:0; padding:.6rem 1rem .85rem; flex:0 0 auto;
   font-size:.75rem; line-height:1.4; color:var(--ink-soft);
@@ -114,6 +155,10 @@
   }
   .chat-form{ padding:.65rem .7rem; gap:.4rem }
   .chat-send{ padding:0 .85rem; font-size:.9rem }
+  /* 44px is the floor, not a preference. At 375px the input, the mic and
+     Enviar have to share 337px of content box. */
+  .chat-mic{ width:44px }
+  .chat-mic-status{ padding:.45rem .7rem 0; font-size:.82rem }
   .chat-log{ padding:.85rem .7rem }
   .chat-msg{ max-width:100% }
   .chat-handoff .btn{ width:auto }

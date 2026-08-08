@@ -36,10 +36,20 @@
       title: 'Asistente de aulauniversitaria',
       close: 'Cerrar el asistente',
       disclosure: 'Hola. Soy un asistente automático, no una persona. Respondo con la información de los talleres y las preguntas frecuentes de aulauniversitaria. Si necesitás algo que no sé, te paso con la coordinación.',
-      privacy: 'Tus mensajes se envían a Google Gemini para generar la respuesta. No guardamos la conversación.',
+      privacy: 'Tus mensajes se envían a Google Gemini para generar la respuesta. Si dictás, la voz la convierte en texto tu propio navegador, Google o Apple según cuál uses, y a nosotros nos llega solo el texto. No guardamos la conversación ni el audio.',
+      /* Shown when the browser cannot dictate. Explaining a feature that is
+         not on the screen is not transparency, it is noise. */
+      privacyPlain: 'Tus mensajes se envían a Google Gemini para generar la respuesta. No guardamos la conversación.',
       placeholder: 'Escribí tu pregunta',
       send: 'Enviar',
       label: 'Tu pregunta',
+      mic: 'Dictar tu pregunta',
+      micStop: 'Dejar de dictar',
+      micOn: 'Escuchando. Hablá y después revisá el texto antes de enviar.',
+      micDenied: 'No pudimos usar el micrófono. Revisá el permiso del navegador, o escribí tu pregunta.',
+      micNoDevice: 'No encontramos un micrófono. Escribí tu pregunta y te respondemos igual.',
+      micNoSpeech: 'No se escuchó nada. Probá de nuevo o escribí tu pregunta.',
+      micFailed: 'No se pudo transcribir. Probá de nuevo o escribí tu pregunta.',
       thinking: 'Buscando en los talleres...',
       suggest: ['¿Cuánto cuesta?', '¿Puedo probar una clase antes?', '¿Qué talleres hay los martes?', '¿Dónde son las clases?'],
       offline: 'El asistente no está disponible en esta dirección. Escribinos por WhatsApp al ' + PHONE + ' y te respondemos.',
@@ -53,10 +63,18 @@
       title: 'aulauniversitaria assistant',
       close: 'Close the assistant',
       disclosure: 'Hello. I am an automated assistant, not a person. I answer using the aulauniversitaria course list and frequently asked questions. If you need something I do not know, I will pass you to coordination.',
-      privacy: 'Your messages are sent to Google Gemini to generate the reply. We do not store the conversation.',
+      privacy: 'Your messages are sent to Google Gemini to generate the reply. If you dictate, your own browser turns your voice into text, Google or Apple depending which you use, and only the text reaches us. We store neither the conversation nor the audio.',
+      privacyPlain: 'Your messages are sent to Google Gemini to generate the reply. We do not store the conversation.',
       placeholder: 'Type your question',
       send: 'Send',
       label: 'Your question',
+      mic: 'Dictate your question',
+      micStop: 'Stop dictating',
+      micOn: 'Listening. Speak, then check the text before you send.',
+      micDenied: 'We could not use the microphone. Check your browser’s permission, or type your question.',
+      micNoDevice: 'We could not find a microphone. Type your question and we will answer just the same.',
+      micNoSpeech: 'We did not hear anything. Try again, or type your question.',
+      micFailed: 'We could not transcribe that. Try again, or type your question.',
       thinking: 'Looking through the courses...',
       suggest: ['How much does it cost?', 'Can I try a class first?', 'What is on on Tuesdays?', 'Where are the classes?'],
       offline: 'The assistant is not available at this address. Message us on WhatsApp at ' + PHONE + ' and we will reply.',
@@ -110,7 +128,14 @@
   }
 
   /* ------------------------------------------------------------------ build */
-  var launcher, panel, log, input, form, sendBtn;
+  var launcher, panel, log, input, form, sendBtn, micBtn, micStatus;
+
+  var MIC_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+    '<path d="M12 2.5a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0v-6a3 3 0 0 0-3-3z"/>' +
+    '<path d="M19 11v.5a7 7 0 0 1-14 0V11"/>' +
+    '<path d="M12 18.5V22"/><path d="M8.5 22h7"/></svg>';
 
   function build() {
     launcher = document.createElement('button');
@@ -133,8 +158,10 @@
       '<form class="chat-form">' +
         '<label class="sr-only" for="chat-input"></label>' +
         '<input id="chat-input" type="text" autocomplete="off" class="chat-input">' +
+        '<button type="button" class="chat-mic" aria-pressed="false" aria-label="" hidden>' + MIC_SVG + '</button>' +
         '<button type="submit" class="chat-send"></button>' +
       '</form>' +
+      '<p class="chat-mic-status" role="status" hidden></p>' +
       '<p class="chat-privacy"></p>';
 
     document.body.appendChild(launcher);
@@ -144,6 +171,8 @@
     input = panel.querySelector('.chat-input');
     form = panel.querySelector('.chat-form');
     sendBtn = panel.querySelector('.chat-send');
+    micBtn = panel.querySelector('.chat-mic');
+    micStatus = panel.querySelector('.chat-mic-status');
 
     launcher.addEventListener('click', toggle);
     panel.querySelector('.chat-close').addEventListener('click', close);
@@ -151,6 +180,13 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && !panel.hidden) close();
     });
+
+    /* Criterion 2: absent, not disabled. The button only becomes visible
+       when the API is genuinely there. */
+    if (dictationAvailable()) {
+      micBtn.hidden = false;
+      micBtn.addEventListener('click', toggleDictation);
+    }
 
     applyText();
   }
@@ -163,7 +199,129 @@
     panel.querySelector('label[for="chat-input"]').textContent = t('label');
     input.placeholder = t('placeholder');
     sendBtn.textContent = t('send');
-    panel.querySelector('.chat-privacy').textContent = t('privacy');
+    micBtn.setAttribute('aria-label', t(listening ? 'micStop' : 'mic'));
+    micBtn.title = t(listening ? 'micStop' : 'mic');
+    if (listening) micStatus.textContent = t('micOn');
+    panel.querySelector('.chat-privacy').textContent =
+      t(micBtn.hidden ? 'privacyPlain' : 'privacy');
+  }
+
+  /* ------------------------------------------------------------- dictation
+   * Built to Tomás's nine criteria in pipeline/10-voice-design-spec.md.
+   *
+   * The Web Speech API hands back a string. No audio object is ever created
+   * here, nothing is uploaded to /api/chat, and there is no MediaRecorder in
+   * this file. The browser does the recognition over its own service, which
+   * is why Rubén's privacy line names Google and Apple rather than us.
+   *
+   * Firefox has never shipped this, and the API is refused outside a secure
+   * context, so both are checked before the button is allowed to exist.
+   */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var rec = null;
+  var listening = false;
+  var dictated = '';      // the final text so far, interim results append to it
+  var micTimer = null;
+
+  /* Safari resolves the constructor but throws on start() over plain http,
+     and the thrown error arrives too late to hide the button gracefully. */
+  function dictationAvailable() {
+    return !!SR && window.isSecureContext !== false;
+  }
+
+  function micState(on) {
+    listening = on;
+    micBtn.classList.toggle('is-listening', on);
+    micBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    micBtn.setAttribute('aria-label', t(on ? 'micStop' : 'mic'));
+    micBtn.title = t(on ? 'micStop' : 'mic');
+  }
+
+  /* One element carries the visible state and the screen reader
+     announcement, so the two can never disagree (criterion 4). */
+  function micSay(msg) {
+    micStatus.textContent = msg || '';
+    micStatus.hidden = !msg;
+  }
+
+  var MIC_ERRORS = {
+    'not-allowed': 'micDenied',
+    'service-not-allowed': 'micDenied',
+    'audio-capture': 'micNoDevice',
+    'no-speech': 'micNoSpeech'
+  };
+
+  /* stop() finalises what was heard and is what the button does. abort()
+     throws it away and is what closing the panel does: someone who has just
+     shut the assistant is not waiting for one more word to be transcribed. */
+  function stopDictation(hard) {
+    if (micTimer) { clearTimeout(micTimer); micTimer = null; }
+    if (!rec) return;
+    try { hard ? rec.abort() : rec.stop(); } catch (e) { /* already stopped */ }
+  }
+
+  function toggleDictation() {
+    if (listening) { stopDictation(); return; }
+
+    try {
+      rec = new SR();
+    } catch (e) {
+      micSay(t('micFailed'));
+      return;
+    }
+
+    /* es-AR rather than es: the regional model handles vos and che, which is
+       most of how this audience actually speaks (criterion 7). */
+    rec.lang = lang() === 'en' ? 'en-GB' : 'es-AR';
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.maxAlternatives = 1;
+
+    /* Criterion 3: whatever they already typed survives. */
+    var existing = input.value.replace(/\s+$/, '');
+    dictated = existing ? existing + ' ' : '';
+
+    rec.onstart = function () {
+      micState(true);
+      micSay(t('micOn'));
+      /* Chrome ends on silence by itself. Some WebKit builds do not, and an
+         open microphone that nobody closed is the failure that matters. */
+      micTimer = setTimeout(stopDictation, 20000);
+    };
+
+    rec.onresult = function (e) {
+      var interim = '';
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) dictated += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
+      }
+      /* Criterion 1: it goes in the box. Nothing here calls send(). */
+      input.value = (dictated + interim).replace(/^\s+/, '');
+    };
+
+    rec.onerror = function (e) {
+      if (e.error === 'aborted') return;          // they pressed stop
+      micSay(t(MIC_ERRORS[e.error] || 'micFailed'));
+    };
+
+    rec.onend = function () {
+      if (micTimer) { clearTimeout(micTimer); micTimer = null; }
+      micState(false);
+      if (micStatus.textContent === t('micOn')) micSay('');
+      rec = null;
+      /* Focus deliberately stays on the microphone button. Moving it to the
+         input would raise the on-screen keyboard over the panel, for the
+         exact people who pressed this button to avoid the keyboard. Send is
+         one tab away. */
+    };
+
+    try {
+      rec.start();
+    } catch (e) {
+      micState(false);
+      micSay(t('micFailed'));
+      rec = null;
+    }
   }
 
   /* -------------------------------------------------------------- messages */
@@ -258,6 +416,7 @@
 
   function open() {
     lastFocus = focusable(document.activeElement) ? document.activeElement : launcher;
+    micSay('');   // an error from a previous session is stale on reopen
     panel.hidden = false;
     launcher.setAttribute('aria-expanded', 'true');
     if (!log.childNodes.length) {
@@ -268,6 +427,11 @@
   }
 
   function close() {
+    /* Criterion 6. A hidden panel with an open microphone is not a feature
+       with a bug in it, it is a listening device. */
+    stopDictation(true);
+    micState(false);
+    micSay('');
     panel.hidden = true;
     launcher.setAttribute('aria-expanded', 'false');
     /* The element that opened the panel may no longer exist: a suggestion chip
@@ -280,6 +444,9 @@
   function send(text) {
     text = String(text || '').trim();
     if (!text || busy) return;
+    stopDictation(true);
+    micState(false);
+    micSay('');
     input.value = '';
     var sug = log.querySelector('.chat-suggest');
     if (sug) sug.remove();
@@ -326,6 +493,11 @@
   /* Keep the assistant in the same language as the page. */
   function watchLanguage() {
     new MutationObserver(function () {
+      /* The recogniser was started with the old language and cannot be
+         retuned in flight. End it rather than transcribe Spanish as English. */
+      stopDictation(true);
+      micState(false);
+      micSay('');
       applyText();
       if (log && !log.childNodes.length) return;
     }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
