@@ -217,6 +217,26 @@
 .chat-cards.is-compact .chat-card-chips{ margin-bottom:.15rem }
 .chat-cards.is-compact .chat-card-ask{ margin-top:.5rem }
 
+/* ---------- dark theme corrections ----------
+   Six places in this file paired a hardcoded #fff with a variable that
+   inverts between themes. In dark, --ink becomes near-white and --red
+   becomes a light pink, so every one of them was white on white or white
+   on pale. Measured before this block: the panel title was white on #F2F0EE
+   at 1.14, and the launcher, Send button and user bubble were white on
+   #FF6076 at 2.92. All four fail AA; the header is simply unreadable.
+   After: 13.06 for the header, 6.4 for the three red surfaces.
+   The rule the rest of the site already follows is the one applied here:
+   where a surface goes light in dark mode, the text on it goes dark. */
+:root[data-theme="dark"] .chat-head{ background:#2A2724; color:var(--ink) }
+:root[data-theme="dark"] .chat-title{ color:var(--ink) }
+:root[data-theme="dark"] .chat-close{ color:var(--ink) }
+:root[data-theme="dark"] .chat-launch{ color:#17110F }
+:root[data-theme="dark"] .chat-launch-dot{ background:#17110F }
+:root[data-theme="dark"] .chat-send{ color:#17110F }
+:root[data-theme="dark"] .chat-user .chat-body,
+:root[data-theme="dark"] .chat-user .chat-body a{ color:#17110F }
+:root[data-theme="dark"] .chat-card-ask:hover{ color:#17110F }
+
 :root[data-theme="dark"] .chat-card{ background:#201E1C }
 :root[data-theme="dark"] .chat-chip-tag{ background:#2A2724 }
 :root[data-theme="dark"] .chat-chip-tag.when{ background:#3A1D22; color:#FFB3BE; border-color:#5A2B33 }
