@@ -22,7 +22,7 @@
   var API_ORIGIN = 'https://ceai-c3.vercel.app';
   var ENDPOINT = (function () {
     var h = location.hostname || '';
-    var noFunctions = h.indexOf('github.io') !== -1 || location.protocol === 'file:';
+    var noFunctions = h.indexOf('github.io') !== -1 || location.protocol === 'file:' || h === 'localhost' || h === '127.0.0.1';
     return noFunctions ? API_ORIGIN + '/api/chat' : '/api/chat';
   })();
 
