@@ -7,13 +7,14 @@
  * back to a stale copy.
  *
  * Source of truth:
- * https://docs.google.com/spreadsheets/d/1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM
+ * https://docs.google.com/spreadsheets/d/1vp0cTTwby2WLsPa0fIMnCovg0N0x_wq8ZHETNZnn07E/edit?gid=724889030#gid=724889030
  */
 
 (function () {
   'use strict';
 
-  var SHEET_ID = '1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM';
+  var SHEET_ID = '1vp0cTTwby2WLsPa0fIMnCovg0N0x_wq8ZHETNZnn07E';
+  var SHEET_GID = '724889030';
 
   /* The teacher sheet. Paste the id between the quotes once the sheet is
      uploaded and shared as "anyone with the link can view". While it is
@@ -42,10 +43,11 @@
   var TERM_END   = '2026-11-30';
   var MAX_NOTICES = 3;
 
-  var gviz = function (id) {
-    return 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1';
+  var gviz = function (id, gid) {
+    var base = 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1';
+    return gid ? base + '&gid=' + gid : base;
   };
-  var SHEET_URL = gviz(SHEET_ID);
+  var SHEET_URL = gviz(SHEET_ID, SHEET_GID);
   var PHONE = '351 3 261002';
   var WA = 'https://wa.me/5493513261002';
 
@@ -310,8 +312,8 @@
   }
 
   /* ------------------------------------------------------- the live fetch */
-  function readSheet(id) {
-    return fetch(gviz(id) + '&nocache=' + Date.now(), { cache: 'no-store' })
+  function readSheet(id, gid) {
+    return fetch(gviz(id, gid) + '&nocache=' + Date.now(), { cache: 'no-store' })
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.text();
@@ -348,7 +350,7 @@
   function loadCourses() {
     showState('loading');
 
-    return readSheet(SHEET_ID)
+    return readSheet(SHEET_ID, SHEET_GID)
       .then(function (rows) {
         COURSES = rows.map(function (r) {
           var day = normDay(r.dia || r.day || '');

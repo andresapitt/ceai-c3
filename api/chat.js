@@ -13,7 +13,8 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 
-const COURSES_SHEET = '1LN4OD7dwwSkjaJGJJknTKnxD3B2a71bdr5ktWFrZJtM';
+const COURSES_SHEET = process.env.COURSES_SHEET_ID || '1vp0cTTwby2WLsPa0fIMnCovg0N0x_wq8ZHETNZnn07E';
+const COURSES_GID = process.env.COURSES_SHEET_GID || '724889030';
 const FAQ_SHEET = process.env.FAQ_SHEET_ID || '';
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const PHONE = '351 3 261002';
@@ -132,8 +133,8 @@ async function readHolidays(courses) {
   }
 }
 
-const gviz = (id) =>
-  `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&headers=1&nocache=${Date.now()}`;
+const gviz = (id, gid) =>
+  `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&headers=1${gid ? `&gid=${gid}` : ''}&nocache=${Date.now()}`;
 
 const pad2 = (n) => (n < 10 ? '0' : '') + n;
 function cellText(cell, type) {
@@ -149,8 +150,8 @@ function cellText(cell, type) {
   return raw;
 }
 
-async function readSheet(id) {
-  const res = await fetch(gviz(id), { cache: 'no-store' });
+async function readSheet(id, gid) {
+  const res = await fetch(gviz(id, gid), { cache: 'no-store' });
   if (!res.ok) throw new Error(`sheet ${id} returned HTTP ${res.status}`);
   const text = await res.text();
   const payload = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
@@ -343,7 +344,7 @@ export default async function handler(req, res) {
     let models = null, sheets = null, error = null;
     try {
       const [courses, faq] = await Promise.all([
-        readSheet(COURSES_SHEET),
+        readSheet(COURSES_SHEET, COURSES_GID),
         FAQ_SHEET ? readSheet(FAQ_SHEET) : Promise.resolve([])
       ]);
       sheets = {
@@ -398,7 +399,7 @@ export default async function handler(req, res) {
     if (!message) return res.status(400).json({ error: 'empty_message' });
 
     const [courses, faq] = await Promise.all([
-      readSheet(COURSES_SHEET),
+      readSheet(COURSES_SHEET, COURSES_GID),
       FAQ_SHEET ? readSheet(FAQ_SHEET) : Promise.resolve([])
     ]);
     const holidays = await readHolidays(courses);
