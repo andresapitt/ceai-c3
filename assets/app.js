@@ -263,7 +263,6 @@
     'ui.ask': 'Consultar por este taller',
     'ui.tbc': 'Fecha a confirmar',
     'ui.src': 'Datos de los talleres leídos en vivo de la planilla de coordinación a las ',
-    'ui.src2': '. Nada de esta página está guardado ni escrito a mano: si recargás, vuelve a consultar la planilla.',
     'ui.noday': 'Fechas a confirmar',
     'ui.teaches': 'Dicta', 'ui.more': 'Leer más', 'ui.less': 'Mostrar menos',
     'ui.courseOne': 'taller en 2026', 'ui.courseMany': 'talleres en 2026',
@@ -591,10 +590,11 @@
 
   function stampSource() {
     if (!FETCHED_AT) return;
+    var el = $('#datasource');
+    if (!el) return;
     var time = FETCHED_AT.toLocaleString('es-AR');
-    $('#datasource').innerHTML =
-      esc(t('ui.src')) + '<strong>' + esc(time) + '</strong>' + esc(t('ui.src2')) +
-      ' <a href="https://docs.google.com/spreadsheets/d/' + SHEET_ID + '" rel="noopener">Google Sheet</a>.';
+    el.innerHTML =
+      esc(t('ui.src')) + '<strong>' + esc(time) + '</strong>.';
   }
 
   /* -------------------------------------------------------------- teachers */
