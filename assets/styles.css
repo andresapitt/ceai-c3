@@ -137,17 +137,9 @@ a:hover{ color:var(--red) }
 :root[data-theme="dark"] .nav-toggle{ background:#201E1C }
 :root[data-theme="dark"] .nav-toggle[aria-expanded="true"]{ background:var(--ink); color:#17110F }
 
-/* The Argentine flag is half white, so it needs its own edge to sit against a
-   white button. The hairline is the flag's border, not the button's. */
-.tool-lang{ padding:0 .5rem }
-.flag{ display:block; width:26px; height:auto; border-radius:2px; box-shadow:0 0 0 1px rgba(0,0,0,.25) }
-:root[data-theme="dark"] .flag{ box-shadow:0 0 0 1px rgba(255,255,255,.35) }
-
 /* Between the mobile layout and full width, the brand, five nav links and
-   four tools compete for one row, and the tools were the ones dropping to a
-   second line. Tighten the nav instead: losing a little padding costs less
-   than the header doubling in height. Spanish is the tighter case, its
-   labels are longer than the English ones. */
+   tools compete for one row. Tighten the nav instead: losing a little padding costs less
+   than the header doubling in height. */
 @media (max-width:1220px){
   .header-inner{ gap:.5rem }
   .site-nav{ gap:0 }

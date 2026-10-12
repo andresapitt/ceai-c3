@@ -31,67 +31,33 @@
   var lastFocus = null;
 
   var TXT = {
-    es: {
-      launch: 'Preguntá lo que quieras',
-      title: 'Asistente de aulauniversitaria',
-      close: 'Cerrar el asistente',
-      disclosure: 'Hola. Soy un asistente automático, no una persona. Respondo con la información de los talleres y las preguntas frecuentes de aulauniversitaria. Si necesitás algo que no sé, te paso con la coordinación.',
-      privacy: 'Tus mensajes se envían a Google Gemini para generar la respuesta. Si dictás, la voz la convierte en texto tu propio navegador, Google o Apple según cuál uses, y a nosotros nos llega solo el texto. No guardamos la conversación ni el audio.',
-      /* Shown when the browser cannot dictate. Explaining a feature that is
-         not on the screen is not transparency, it is noise. */
-      privacyPlain: 'Tus mensajes se envían a Google Gemini para generar la respuesta. No guardamos la conversación.',
-      placeholder: 'Escribí tu pregunta',
-      send: 'Enviar',
-      label: 'Tu pregunta',
-      mic: 'Dictar tu pregunta',
-      micStop: 'Dejar de dictar',
-      micOn: 'Escuchando. Hablá y después revisá el texto antes de enviar.',
-      micDenied: 'No pudimos usar el micrófono. Revisá el permiso del navegador, o escribí tu pregunta.',
-      micNoDevice: 'No encontramos un micrófono. Escribí tu pregunta y te respondemos igual.',
-      micNoSpeech: 'No se escuchó nada. Probá de nuevo o escribí tu pregunta.',
-      micFailed: 'No se pudo transcribir. Probá de nuevo o escribí tu pregunta.',
-      /* Shown before the reply exists, so it cannot know what kind of question
-         this is. "Buscando en los talleres" was a claim, and it was wrong for
-         every question about aranceles, certificados, feriados or inscripción. */
-      thinking: 'Buscando la respuesta...',
-      suggest: ['¿Cuánto cuesta?', '¿Puedo probar una clase antes?', '¿Qué talleres hay los martes?', '¿Dónde son las clases?'],
-      offline: 'El asistente no está disponible en esta dirección. Escribinos por WhatsApp al ' + PHONE + ' y te respondemos.',
-      wa: 'Escribir por WhatsApp',
-      you: 'Vos', bot: 'Asistente',
-      cAlso: 'También', cTeacher: 'Profesor', cLevel: 'Nivel',
-      cPeriod: 'Período', cPlaces: 'Cupo', cAsk: 'Consultar por este taller',
-      cMany: 'talleres'
-    },
-    en: {
-      launch: 'Ask us anything',
-      title: 'aulauniversitaria assistant',
-      close: 'Close the assistant',
-      disclosure: 'Hello. I am an automated assistant, not a person. I answer using the aulauniversitaria course list and frequently asked questions. If you need something I do not know, I will pass you to coordination.',
-      privacy: 'Your messages are sent to Google Gemini to generate the reply. If you dictate, your own browser turns your voice into text, Google or Apple depending which you use, and only the text reaches us. We store neither the conversation nor the audio.',
-      privacyPlain: 'Your messages are sent to Google Gemini to generate the reply. We do not store the conversation.',
-      placeholder: 'Type your question',
-      send: 'Send',
-      label: 'Your question',
-      mic: 'Dictate your question',
-      micStop: 'Stop dictating',
-      micOn: 'Listening. Speak, then check the text before you send.',
-      micDenied: 'We could not use the microphone. Check your browser’s permission, or type your question.',
-      micNoDevice: 'We could not find a microphone. Type your question and we will answer just the same.',
-      micNoSpeech: 'We did not hear anything. Try again, or type your question.',
-      micFailed: 'We could not transcribe that. Try again, or type your question.',
-      thinking: 'Looking that up...',
-      suggest: ['How much does it cost?', 'Can I try a class first?', 'What is on on Tuesdays?', 'Where are the classes?'],
-      offline: 'The assistant is not available at this address. Message us on WhatsApp at ' + PHONE + ' and we will reply.',
-      wa: 'Message on WhatsApp',
-      you: 'You', bot: 'Assistant',
-      cAlso: 'Also', cTeacher: 'Teacher', cLevel: 'Level',
-      cPeriod: 'Period', cPlaces: 'Places', cAsk: 'Ask about this course',
-      cMany: 'courses'
-    }
+    launch: 'Preguntá lo que quieras',
+    title: 'Asistente de aulauniversitaria',
+    close: 'Cerrar el asistente',
+    disclosure: 'Hola. Soy un asistente automático, no una persona. Respondo con la información de los talleres y las preguntas frecuentes de aulauniversitaria. Si necesitás algo que no sé, te paso con la coordinación.',
+    privacy: 'Tus mensajes se envían a Google Gemini para generar la respuesta. Si dictás, la voz la convierte en texto tu propio navegador, Google o Apple según cuál uses, y a nosotros nos llega solo el texto. No guardamos la conversación ni el audio.',
+    privacyPlain: 'Tus mensajes se envían a Google Gemini para generar la respuesta. No guardamos la conversación.',
+    placeholder: 'Escribí tu pregunta',
+    send: 'Enviar',
+    label: 'Tu pregunta',
+    mic: 'Dictar tu pregunta',
+    micStop: 'Dejar de dictar',
+    micOn: 'Escuchando. Hablá y después revisá el texto antes de enviar.',
+    micDenied: 'No pudimos usar el micrófono. Revisá el permiso del navegador, o escribí tu pregunta.',
+    micNoDevice: 'No encontramos un micrófono. Escribí tu pregunta y te respondemos igual.',
+    micNoSpeech: 'No se escuchó nada. Probá de nuevo o escribí tu pregunta.',
+    micFailed: 'No se pudo transcribir. Probá de nuevo o escribí tu pregunta.',
+    thinking: 'Buscando la respuesta...',
+    suggest: ['¿Cuánto cuesta?', '¿Puedo probar una clase antes?', '¿Qué talleres hay los martes?', '¿Dónde son las clases?'],
+    offline: 'El asistente no está disponible en esta dirección. Escribinos por WhatsApp al ' + PHONE + ' y te respondemos.',
+    wa: 'Escribir por WhatsApp',
+    you: 'Vos', bot: 'Asistente',
+    cAlso: 'También', cTeacher: 'Profesor', cLevel: 'Nivel',
+    cPeriod: 'Período', cPlaces: 'Cupo', cAsk: 'Consultar por este taller',
+    cMany: 'talleres'
   };
 
-  function lang() { return document.documentElement.lang === 'en' ? 'en' : 'es'; }
-  function t(k) { return TXT[lang()][k]; }
+  function t(k) { return TXT[k]; }
   function esc(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -275,9 +241,8 @@
       return;
     }
 
-    /* es-AR rather than es: the regional model handles vos and che, which is
-       most of how this audience actually speaks (criterion 7). */
-    rec.lang = lang() === 'en' ? 'en-GB' : 'es-AR';
+    /* es-AR: the regional model handles vos and che (criterion 7). */
+    rec.lang = 'es-AR';
     rec.interimResults = true;
     rec.continuous = false;
     rec.maxAlternatives = 1;
@@ -404,9 +369,7 @@
         c.capacity ? row(t('cPlaces'), c.capacity) : ''
       ].filter(Boolean).join('');
 
-      var ask = encodeURIComponent(
-        (lang() === 'es' ? 'Hola, quiero consultar por el taller: ' : 'Hello, I would like to ask about: ') + c.title
-      );
+      var ask = encodeURIComponent('Hola, quiero consultar por el taller: ' + c.title);
 
       el.innerHTML =
         '<h3>' + esc(c.title) + '</h3>' +
@@ -504,7 +467,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
-      body: JSON.stringify({ message: text, history: history.slice(0, -1), lang: lang() })
+      body: JSON.stringify({ message: text, history: history.slice(0, -1), lang: 'es' })
     })
       .then(function (r) {
         if (r.status === 404 || r.status === 405) throw new Error('no_endpoint');
@@ -532,21 +495,7 @@
       });
   }
 
-  /* Keep the assistant in the same language as the page. */
-  function watchLanguage() {
-    new MutationObserver(function () {
-      /* The recogniser was started with the old language and cannot be
-         retuned in flight. End it rather than transcribe Spanish as English. */
-      stopDictation(true);
-      micState(false);
-      micSay('');
-      applyText();
-      if (log && !log.childNodes.length) return;
-    }).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
-  }
-
   document.addEventListener('DOMContentLoaded', function () {
     build();
-    watchLanguage();
   });
 })();

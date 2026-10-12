@@ -138,15 +138,12 @@ That breakpoint is set by Spanish, not English: its labels are longer, and squee
 
 With the A+ text-size control on, the header wraps again at narrower widths. That is the right trade: the alternative is shrinking targets for the people who have just asked for larger text.
 
-## Spanish course names
+## Spanish course spreadsheets
 
-Any column in the sheet may have an `_es` twin. When the page is in Spanish and the twin has a value, it wins. When it does not, the English column shows rather than nothing.
+The site is entirely in Spanish. All spreadsheets use Spanish keys and values:
 
-Two are supported today: `course_name_es` and `notes_es`. Adding more needs no code change.
-
-`programas/courses-2026-ES.csv` carries both, with titles taken from the original Spanish programme document rather than translated back from the English. Upload it to the sheet and the page renders in Spanish on the next load.
-
-Day, area, format, level and period are translated in the page itself, so they need no columns.
+- **Courses sheet**: `id, tipo, area, nombre, nivel, idioma, modalidad, lugar, dia, horario_24h, horario_display, dia_alternativo, horario_alternativo_24h, frecuencia, encuentros, periodo, docente, cupo, libro, notas`
+- `programas/courses-2026.csv` contains the full 47-course catalogue with Spanish keys and values. Backward compatibility with older English keys is also preserved.
 
 ## The assistant
 
@@ -210,15 +207,15 @@ var TEACHERS_SHEET_ID = '1lVxincu--PI9M_WPri5c1gdf4A8f2ezIWWbrn4wexwA';
 
 If that is emptied, or if the sheet cannot be read, the teachers section **and its nav link** stay hidden. Hiding the section but leaving the link was a real defect, caught by the blocked-sheet test: it pointed at nothing. A missing biography is left blank rather than filled in: six people in the 2026 programme have no bio in any source.
 
-Columns: `id, name, teaches_es, teaches_en, bio_es, bio_en, photo_url, active, sort_order`.
+Columns: `id, nombre, dicta, bio, foto_url, activo, orden`.
 
-**Two teacher counts appear on the page and they do not match. Both are correct.** The hero counts distinct names in the `teacher` column of the *courses* sheet, currently 27, so it answers "how many people are teaching in 2026". The teachers section renders every active row of the *teachers* sheet, currently 28. A row can exist without a 2026 course. Six of the 28 have no biography in any source and are shown with the field blank rather than something invented.
+**Two teacher counts appear on the page and they do not match. Both are correct.** The hero counts distinct names in the `teacher` (or `docente`) column of the *courses* sheet, currently 27, so it answers "how many people are teaching in 2026". The teachers section renders every active row of the *teachers* sheet, currently 28. A row can exist without a 2026 course. Six of the 28 have no biography in any source and are shown with the field blank rather than something invented.
 
-`name` must match the `teacher` column in the courses sheet exactly. That join is what gives each card its workshop count and its "see their workshops" button. Set `active` to `no` to hide someone without deleting their row. `photo_url` is optional: without it the card shows the person's initials.
+`nombre` (or `name`) must match the `docente` / `teacher` column in the courses sheet exactly. That join is what gives each card its workshop count and its "see their workshops" button. Set `activo` to `no` to hide someone without deleting their row. `foto_url` is optional: without it the card shows the person's initials.
 
 ## Practical information
 
-A third sheet, `INFO_SHEET_ID` in `assets/app.js`, holding the cards under "How to start". Six rows, columns `id, title_es, title_en, body_es, body_en, sort_order`.
+A third sheet, `INFO_SHEET_ID` in `assets/app.js`, holding the cards under "Cómo empezar". Six rows, columns `id, titulo, texto, activo, orden`.
 
 It exists so coordination can change what the site says about enrolling, the term dates or how to reach Argüello without anyone touching code. Same failure behaviour as the others: unreachable means the section does not render, not that a stale copy is shown.
 

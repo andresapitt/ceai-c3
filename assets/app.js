@@ -1,7 +1,5 @@
 /* aulauniversitaria course finder
  *
- * Built by Nadia Kaufman.
- *
  * The course catalogue is NOT stored in this file. It is read from the
  * coordination team's Google Sheet with a fresh HTTP request every time the
  * page loads. Nothing here is cached, hardcoded, or copy-pasted. If the sheet
@@ -44,33 +42,6 @@
   var TERM_END   = '2026-11-30';
   var MAX_NOTICES = 3;
 
-  /* Flags for the language toggle.
-     Not emoji. Windows has never shipped the regional-indicator glyphs, so a
-     flag emoji renders there as the bare letter pair "AR" or "GB", which is
-     worse than the "ES" it replaced. Inline SVG renders everywhere, needs no
-     request and survives the content security policy.
-     Both are drawn in the same 3:2 box so the button does not change width
-     when the language changes. The Union Jack is normally 2:1; at 26px the
-     proportion is not what anyone is reading. */
-  var FLAG_AR =
-    '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true" focusable="false">' +
-      '<rect width="30" height="20" fill="#fff"/>' +
-      '<rect width="30" height="6.67" fill="#75AADB"/>' +
-      '<rect y="13.33" width="30" height="6.67" fill="#75AADB"/>' +
-      '<circle cx="15" cy="10" r="2.4" fill="#FCBF49" stroke="#843511" stroke-width=".35"/>' +
-    '</svg>';
-  var FLAG_GB =
-    '<svg class="flag" viewBox="0 0 30 20" aria-hidden="true" focusable="false">' +
-      '<clipPath id="uk-counterchange">' +
-        '<path d="M15,10 h15 v10 z v10 h-15 z h-15 v-10 z v-10 h15 z"/>' +
-      '</clipPath>' +
-      '<rect width="30" height="20" fill="#012169"/>' +
-      '<path d="M0,0 L30,20 M30,0 L0,20" stroke="#fff" stroke-width="4"/>' +
-      '<path d="M0,0 L30,20 M30,0 L0,20" clip-path="url(#uk-counterchange)" stroke="#C8102E" stroke-width="2.4"/>' +
-      '<path d="M15,0 V20 M0,10 H30" stroke="#fff" stroke-width="6.6"/>' +
-      '<path d="M15,0 V20 M0,10 H30" stroke="#C8102E" stroke-width="4"/>' +
-    '</svg>';
-
   var gviz = function (id) {
     return 'https://docs.google.com/spreadsheets/d/' + id + '/gviz/tq?tqx=out:json&headers=1';
   };
@@ -85,21 +56,25 @@
   var HOLIDAYS = [];      /* upcoming, for the notice */
   var HOLIDAYS_ALL = [];  /* every in-term holiday, for calendar exclusions */
   var FETCHED_AT = null;
-  /* English is the default. A visitor who switches to Spanish stays in
-     Spanish for that visit. */
-  var LANG = 'en';
 
   /* ------------------------------------------------------ display mapping */
-  /* The sheet stores its enum values in English. These maps translate them for
-     display only. They never replace or invent course data. */
-  var DAY_ES = {
+  var DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Sábado y domingo', 'Domingo'];
+
+  var EN_TO_ES_DAY = {
     Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miércoles',
     Thursday: 'Jueves', Friday: 'Viernes', Saturday: 'Sábado',
-    Sunday: 'Domingo', 'Saturday-Sunday': 'Sábado y domingo'
+    Sunday: 'Domingo', 'Saturday-Sunday': 'Sábado y domingo',
+    lunes: 'Lunes', martes: 'Martes', miercoles: 'Miércoles', miércoles: 'Miércoles',
+    jueves: 'Jueves', viernes: 'Viernes', sabado: 'Sábado', sábado: 'Sábado',
+    domingo: 'Domingo'
   };
-  var DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Saturday-Sunday','Sunday'];
 
-  var CAT_ES = {
+  function normDay(d) {
+    if (!d) return '';
+    return EN_TO_ES_DAY[d] || d;
+  }
+
+  var CAT_NORM = {
     'Art and Creativity': 'Arte y creatividad',
     'Humanities and Personal Development': 'Humanidades y desarrollo personal',
     'Technology': 'Tecnología',
@@ -109,64 +84,112 @@
     'New workshop (Aug 2026)': 'Taller nuevo (agosto 2026)'
   };
 
-  var FMT_ES = { 'In person': 'Presencial', 'Online': 'Virtual' };
-
-  /* The sheet now carries Spanish course names in course_name_es, so a search
-     for "italiano" matches the title directly. This map stays because it also
-     covers words that are in nobody's title: "cartas" finds bridge, "memoria"
-     finds the cognitive workshop, "deporte" finds golf. It only widens the
-     search. It never renames a course or invents one. */
-  var SEARCH_ES = {
-    'italiano': 'italian', 'ingles': 'english', 'inglés': 'english',
-    'frances': 'french', 'francés': 'french', 'portugues': 'portuguese',
-    'portugués': 'portuguese', 'japones': 'japanese', 'japonés': 'japanese',
-    'idioma': 'language', 'idiomas': 'language',
-    'pintura': 'painting', 'pintar': 'painting', 'dibujo': 'drawing',
-    'arte': 'art', 'cine': 'film', 'pelicula': 'film', 'película': 'film',
-    'musica': 'music', 'música': 'music', 'canto': 'singing', 'cantar': 'singing',
-    'literatura': 'literary', 'lectura': 'reading', 'leer': 'reading',
-    'escritura': 'writing', 'escribir': 'writing', 'libro': 'book',
-    'filosofia': 'philosoph', 'filosofía': 'philosoph', 'historia': 'history',
-    'arteh': 'art history', 'memoria': 'mind', 'mente': 'mind',
-    'meditacion': 'mindfulness', 'meditación': 'mindfulness',
-    'emociones': 'emotional', 'emocional': 'emotional',
-    'computacion': 'computer', 'computación': 'computer', 'computadora': 'computer',
-    'informatica': 'computer', 'informática': 'computer', 'celular': 'mobile',
-    'telefono': 'mobile', 'teléfono': 'mobile', 'tablet': 'tablet',
-    'tecnologia': 'technology', 'tecnología': 'technology',
-    'inteligencia artificial': 'artificial intelligence', 'ia': 'artificial intelligence',
-    'tejido': 'weave', 'tejer': 'weave', 'telar': 'weave', 'crochet': 'weave',
-    'gimnasia': 'physical', 'deporte': 'physical', 'cuerpo': 'physical',
-    'juego': 'games', 'juegos': 'games', 'cartas': 'bridge',
-    'viaje': 'travel', 'viajar': 'travel', 'viajeros': 'travellers',
-    'presencial': 'in person', 'virtual': 'online', 'online': 'online'
-  };
-
-  function expandQuery(q) {
-    var terms = [q];
-    Object.keys(SEARCH_ES).forEach(function (key) {
-      if (key.indexOf(q) === 0 || q.indexOf(key) === 0) terms.push(SEARCH_ES[key]);
-    });
-    return terms;
+  function normCat(c) {
+    if (!c) return '';
+    return CAT_NORM[c] || c;
   }
 
-  var FREQ_ES = {
+  var FMT_NORM = {
+    'In person': 'Presencial',
+    'Online': 'Virtual'
+  };
+
+  function normFmt(f) {
+    if (!f) return '';
+    return FMT_NORM[f] || f;
+  }
+
+  var FREQ_NORM = {
     Weekly: 'Semanal', Fortnightly: 'Quincenal', 'One-off': 'Encuentro único',
-    'Fixed dates': 'Fechas fijas', 'Monthly (fixed dates)': 'Mensual, fechas fijas',
+    'Fixed dates': 'Fechas fijas', 'Monthly (fixed dates)': 'Mensual (fechas fijas)',
     'Residential weekend': 'Fin de semana'
   };
 
-  var LEVEL_ES = {
+  function normFreq(f) {
+    if (!f) return '';
+    return FREQ_NORM[f] || f;
+  }
+
+  var LEVEL_NORM = {
     'Beginner': 'Inicial', 'Beginner 2': 'Inicial 2', 'Elementary': 'Elemental',
     'Pre-Intermediate': 'Pre intermedio', 'Pre-Intermediate 2': 'Pre intermedio 2',
     'Intermediate': 'Intermedio', 'Intermediate/Advanced': 'Intermedio y avanzado',
     'Advanced': 'Avanzado', 'Level 1': 'Nivel 1', 'Level 2': 'Nivel 2', 'Level 3': 'Nivel 3',
     'Beginner to experienced': 'Desde cero o con experiencia',
-    'No prior experience required': 'No hace falta experiencia previa'
+    'No prior experience required': 'No hace falta experiencia previa',
+    'A1 (CEFR)': 'A1 (MCER)'
   };
 
-  /* Months and the handful of period phrases the sheet uses. Anything not
-     listed falls through unchanged rather than being guessed at. */
+  function normLevel(l) {
+    if (!l) return '';
+    return LEVEL_NORM[l] || l;
+  }
+
+  var LANG_NORM = {
+    English: 'Inglés', French: 'Francés', Italian: 'Italiano', Portuguese: 'Portugués', Spanish: 'Español'
+  };
+
+  function normLang(l) {
+    if (!l) return '';
+    return LANG_NORM[l] || l;
+  }
+
+  /* Expanded search terms for synonyms and related words */
+  var SEARCH_SYNONYMS = {
+    'italiano': ['italiano', 'italia', 'palmaghini', 'malinverno'],
+    'ingles': ['ingles', 'inglés', 'english', 'bancalari', 'borgogno', 'novillo', 'carina'],
+    'inglés': ['ingles', 'inglés', 'english', 'bancalari', 'borgogno', 'novillo', 'carina'],
+    'frances': ['frances', 'francés', 'french', 'rufail'],
+    'francés': ['frances', 'francés', 'french', 'rufail'],
+    'portugues': ['portugues', 'portugués', 'carreras'],
+    'portugués': ['portugues', 'portugués', 'carreras'],
+    'idioma': ['idioma', 'idiomas', 'italiano', 'ingles', 'frances', 'portugues'],
+    'idiomas': ['idioma', 'idiomas', 'italiano', 'ingles', 'frances', 'portugues'],
+    'pintura': ['pintura', 'pintar', 'dibujo', 'macedo'],
+    'arte': ['arte', 'pintura', 'cine', 'visuales', 'artesanias', 'tejido'],
+    'cine': ['cine', 'pelicula', 'película', 'audiovisual', 'arevalo', 'arévalo'],
+    'musica': ['musica', 'música', 'canto', 'cantar', 'cocimano'],
+    'música': ['musica', 'música', 'canto', 'cantar', 'cocimano'],
+    'literatura': ['literatura', 'lectura', 'escribir', 'escritura', 'libro', 'trossero', 'camio', 'nobel', 'quiroga', 'schweblin'],
+    'lectura': ['lectura', 'leer', 'libro', 'literario', 'trossero', 'camio'],
+    'filosofia': ['filosofia', 'filosofía', 'stanis'],
+    'filosofía': ['filosofia', 'filosofía', 'stanis'],
+    'historia': ['historia', 'achaval', 'achával'],
+    'memoria': ['memoria', 'mente', 'cognitivo', 'premolo', 'prémolo'],
+    'mente': ['mente', 'memoria', 'atencion', 'atención', 'premolo', 'prémolo'],
+    'meditacion': ['meditacion', 'meditación', 'mindfulness', 'atencion plena', 'hernandez', 'hernández'],
+    'meditación': ['meditacion', 'meditación', 'mindfulness', 'atencion plena', 'hernandez', 'hernández'],
+    'emociones': ['emociones', 'emocional', 'gestion emocional', 'hernandez'],
+    'computacion': ['computacion', 'computación', 'computadora', 'informatica', 'informática', 'celular', 'tablet', 'pedano', 'perez', 'pérez'],
+    'computación': ['computacion', 'computación', 'computadora', 'informatica', 'informática', 'celular', 'tablet', 'pedano', 'perez', 'pérez'],
+    'informatica': ['informatica', 'informática', 'computacion', 'computadora', 'ia', 'inteligencia artificial'],
+    'informática': ['informatica', 'informática', 'computacion', 'computadora', 'ia', 'inteligencia artificial'],
+    'celular': ['celular', 'tablet', 'telefono', 'teléfono', 'pedano'],
+    'tecnologia': ['tecnologia', 'tecnología', 'celular', 'computadora', 'ia'],
+    'tecnología': ['tecnologia', 'tecnología', 'celular', 'computadora', 'ia'],
+    'inteligencia artificial': ['inteligencia artificial', 'ia', 'ai'],
+    'ia': ['inteligencia artificial', 'ia', 'ai'],
+    'tejido': ['tejido', 'tejer', 'telar', 'trama', 'crochet', 'induni'],
+    'golf': ['golf', 'castillo', 'villa allende', 'deporte'],
+    'bridge': ['bridge', 'cartas', 'juego', 'rodriguez tagle'],
+    'cartas': ['bridge', 'cartas'],
+    'viaje': ['viaje', 'viajar', 'viajeros', 'turismo', 'historia', 'portugues', 'italiano'],
+    'presencial': ['presencial', 'campus'],
+    'virtual': ['virtual', 'online', 'zoom', 'meet']
+  };
+
+  function expandQuery(q) {
+    var terms = [q];
+    Object.keys(SEARCH_SYNONYMS).forEach(function (key) {
+      if (key.indexOf(q) === 0 || q.indexOf(key) === 0) {
+        SEARCH_SYNONYMS[key].forEach(function (t) {
+          if (terms.indexOf(t) === -1) terms.push(t);
+        });
+      }
+    });
+    return terms;
+  }
+
   var MONTH_ES = {
     January: 'enero', February: 'febrero', March: 'marzo', April: 'abril',
     May: 'mayo', June: 'junio', July: 'julio', August: 'agosto',
@@ -189,135 +212,75 @@
     return out;
   }
 
-  function tr(map, value) {
-    if (!value) return '';
-    if (LANG === 'en') return value;
-    return map[value] || value;
-  }
-
-  /* ------------------------------------------------------------------ i18n */
+  /* ------------------------------------------------------------------ strings */
   var STRINGS = {
-    en: {
-      'nav.courses': 'Courses', 'nav.week': 'The week', 'nav.how': 'How to start', 'nav.contact': 'Contact',
-      'nav.teachers': 'Teachers',
-      'skip': 'Skip to the course finder',
-      'ig.label': 'aulauniversitaria on Instagram, opens in a new tab',
-      'doc.title': 'aulauniversitaria | Courses for people over 50 in Córdoba',
-      'find.placeholder': 'italian, painting, bridge...',
-      'contact.p1': 'Phone 351 3 261002', 'contact.p2': 'Phone 3543 536010',
-      'teach.title': 'Who teaches the classes',
-      'teach.lead': 'Every workshop is taught by someone with a career of their own. These are their names and their background.',
-      'tool.bigger': 'Make the text bigger',
-      'nav.menu': 'Menu', 'nav.menuClose': 'Close',
-      'tool.themeDark': 'Switch to a dark background',
-      'tool.themeLight': 'Switch to a light background',
-      'hero.kicker': 'Asociación Civil Promover and Universidad Blas Pascal',
-      'hero.title': 'Pick a course. The first class is free.',
-      'hero.lead': 'Languages, art, philosophy, technology, bridge and golf. Forty-seven offerings on the Universidad Blas Pascal campus in Argüello, and online too. You can try any workshop without paying anything before you decide.',
-      'hero.cta1': 'I want to try a class', 'hero.cta2': 'See the courses',
-      'hero.fact1': 'offerings in 2026', 'hero.fact2': 'teachers',
-      'hero.fact3v': '2 March', 'hero.fact3': 'classes begin',
-      'hero.fact4v': 'All year', 'hero.fact4': 'enrolment open',
-      'find.title': 'Find your course',
-      'find.lead': 'Type what interests you or filter by day. This list is read live from the coordination team’s spreadsheet every time you open this page.',
-      'find.search': 'Search by name, subject or teacher', 'find.day': 'Day', 'find.cat': 'Area',
-      'find.fmt': 'Format', 'find.any': 'Any', 'find.clear': 'Clear',
-      'week.title': 'The week at a glance',
-      'week.lead': 'Everything that happens each day, ordered by time. Useful if you already know which afternoon you have free.',
-      'how.title': 'How to start, in three steps',
-      'how.s1t': 'Choose a course you like', 'how.s1b': 'Use the finder above. Check the day and time that suit you.',
-      'how.s2t': 'Call or send a WhatsApp', 'how.s2b': 'Tell us which one interests you and we will keep you a place in the next class. A person answers, not a machine.',
-      'how.wa': 'Message on WhatsApp',
-      'how.s3t': 'Come and try it. That class is free.',
-      'how.s3b': 'You sit in, watch how the group works, and then decide. If you like it, you enrol. If not, you try another workshop.',
-      'how.feeT': 'What does it cost?',
-      'how.feeB': 'The fee is paid monthly, between the 1st and the 15th, at a discounted rate within those dates. We do not publish the amount on this page because it changes during the year: ask us by phone or WhatsApp and we will tell you straight away, with no obligation.',
-      'info.title': 'Worth knowing',
-      'info.i1t': 'A Universidad Blas Pascal certificate',
-      'info.i1b': 'When you finish the full course you receive a certificate issued by UBP. The only requirement is attending 80 per cent of classes.',
-      'info.i2t': 'In person, online, or both',
-      'info.i2b': 'The campus classrooms are hybrid: the same workshop can run in the room and on a video call at the same time.',
-      'info.i3t': 'Small groups',
-      'info.i3b': 'A workshop opens with a minimum of ten students. Below that number, the teacher and the coordination team decide whether it runs.',
-      'info.i4t': 'The calendar',
-      'info.i4b': 'Classes run from 2 March to 30 November. Enrolment is open all year: you can join in any month.',
-      'info.i5t': 'If you miss a class',
-      'info.i5b': 'If the teacher is absent, a day and time is agreed to make the class up. If you miss for a personal reason, the month is still payable, because the teacher has held that hour for you.',
-      'info.i6t': 'If you want to leave',
-      'info.i6b': 'Let us know in advance by WhatsApp, email or in person. There is no contract and no minimum term.',
-      'contact.title': 'Where we are and how to reach us',
-      'contact.h1': 'Talk to a person', 'contact.h2': 'Where the classes are',
-      'contact.campus': 'Universidad Blas Pascal campus',
-      'foot.org': 'A programme of Asociación Civil Promover and the Extension and International Relations Office of Universidad Blas Pascal.',
-      'ui.results': 'course', 'ui.results_p': 'courses', 'ui.showing': 'Showing',
-      'ui.none': 'Nothing matches that search. Try clearing the filters, or call us on ' + PHONE + ' and we will help you find something.',
-      'ui.loading': 'Loading the courses', 'ui.loadingBody': 'Reading the current list from the coordination spreadsheet.',
-      'ui.errT': 'We could not load the course list',
-      'ui.errB': 'The connection to the course spreadsheet failed, so we are not showing you a list that might be out of date. Call or message us on ' + PHONE + ' and we will tell you what is running.',
-      'ui.retry': 'Try again',
-      'ui.teacher': 'Teacher', 'ui.period': 'Period', 'ui.also': 'Also', 'ui.book': 'Coursebook',
-      'ui.level': 'Level', 'ui.places': 'Places', 'ui.sessions': 'Sessions',
-      'ui.ask': 'Ask about this course',
-      'ui.tbc': 'Date to be confirmed',
-      'ui.src': 'Course data read live from the coordination team’s Google Sheet at ',
-      'ui.src2': '. Nothing on this page is stored or hardcoded: reload and it queries the sheet again.',
-      'ui.noday': 'Dates to be confirmed',
-      'ui.teaches': 'Teaches', 'ui.more': 'Read more', 'ui.less': 'Show less',
-      'ui.courseOne': 'workshop in 2026', 'ui.courseMany': 'workshops in 2026',
-      'ui.seeCourses': 'See their workshops',
-      'hol.title': 'Days with no classes',
-      'hol.lead': 'These are national public holidays that fall on a day we teach. There are no classes on these dates.',
-      'hol.one': 'workshop', 'hol.many': 'workshops',
-      'hol.check': 'Any doubt, call us on ',
-      'cal.add': 'Add to calendar:', 'cal.addDay': 'Add to calendar:',
-      'cal.google': 'Google Calendar', 'cal.ics': 'Download (.ics)',
-      'cal.skips': 'No class on:',
-      'cal.assumed': 'Approximate duration, two hours',
-      'cal.ask': 'Questions:'
-    },
-    es: {
-      'nav.menu': 'Menú', 'nav.menuClose': 'Cerrar',
-      'ig.label': 'Instagram de aulauniversitaria, se abre en una pestaña nueva',
-      'doc.title': 'aulauniversitaria | Actividades para mayores de 50 años en Córdoba',
-      'find.placeholder': 'italiano, pintura, bridge...',
-      'tool.themeDark': 'Cambiar a fondo oscuro',
-      'tool.themeLight': 'Cambiar a fondo claro',
-      'ui.results': 'taller', 'ui.results_p': 'talleres', 'ui.showing': 'Mostrando',
-      'ui.none': 'No hay nada con esa búsqueda. Probá limpiar los filtros, o llamanos al ' + PHONE + ' y te ayudamos a encontrar algo.',
-      'ui.loading': 'Cargando los talleres', 'ui.loadingBody': 'Leyendo la lista actual de la planilla de coordinación.',
-      'ui.errT': 'No pudimos cargar la lista de talleres',
-      'ui.errB': 'Falló la conexión con la planilla, así que preferimos no mostrarte una lista que puede estar vieja. Llamanos o escribinos al ' + PHONE + ' y te contamos qué se está dictando.',
-      'ui.retry': 'Reintentar',
-      'ui.teacher': 'Profesor', 'ui.period': 'Período', 'ui.also': 'También', 'ui.book': 'Libro',
-      'ui.level': 'Nivel', 'ui.places': 'Cupo', 'ui.sessions': 'Encuentros',
-      'ui.ask': 'Consultar por este taller',
-      'ui.tbc': 'Fecha a confirmar',
-      'ui.src': 'Datos de los talleres leídos en vivo de la planilla de coordinación a las ',
-      'ui.src2': '. Nada de esta página está guardado ni escrito a mano: si recargás, vuelve a consultar la planilla.',
-      'ui.noday': 'Fechas a confirmar',
-      'ui.teaches': 'Dicta', 'ui.more': 'Leer más', 'ui.less': 'Mostrar menos',
-      'ui.courseOne': 'taller en 2026', 'ui.courseMany': 'talleres en 2026',
-      'ui.seeCourses': 'Ver sus talleres',
-      'hol.title': 'Días sin clases',
-      'hol.lead': 'Son feriados nacionales que caen en un día que dictamos. Esas fechas no hay clases.',
-      'hol.one': 'taller', 'hol.many': 'talleres',
-      'hol.check': 'Ante cualquier duda, llamanos al ',
-      'cal.add': 'Agregar al calendario:', 'cal.addDay': 'Agregar al calendario:',
-      'cal.google': 'Google Calendar', 'cal.ics': 'Descargar (.ics)',
-      'cal.skips': 'Sin clases el:',
-      'cal.assumed': 'Duración aproximada, dos horas',
-      'cal.ask': 'Consultas:'
-    }
+    'nav.courses': 'Talleres', 'nav.week': 'La semana', 'nav.how': 'Cómo empezar', 'nav.contact': 'Contacto',
+    'nav.teachers': 'Profesores', 'nav.menu': 'Menú', 'nav.menuClose': 'Cerrar',
+    'skip': 'Ir al buscador de talleres',
+    'ig.label': 'Instagram de aulauniversitaria, se abre en una pestaña nueva',
+    'doc.title': 'aulauniversitaria | Actividades para mayores de 50 años en Córdoba',
+    'find.placeholder': 'italiano, pintura, bridge...',
+    'contact.p1': 'Teléfono 351 3 261002', 'contact.p2': 'Teléfono 3543 536010',
+    'teach.title': 'Quiénes dan las clases',
+    'teach.lead': 'Cada taller lo dicta alguien con una trayectoria propia. Estos son sus nombres y su recorrido.',
+    'tool.bigger': 'Agrandar el texto',
+    'tool.themeDark': 'Cambiar a fondo oscuro',
+    'tool.themeLight': 'Cambiar a fondo claro',
+    'hero.kicker': 'Asociación Civil Promover + Universidad Blas Pascal',
+    'hero.title': 'Elegí un taller. La primera clase es gratis.',
+    'hero.lead': 'Idiomas, arte, filosofía, tecnología, bridge y golf. Cuarenta y siete propuestas en el campus de la Universidad Blas Pascal, en Argüello, y también por videollamada. Podés probar cualquier taller sin pagar nada antes de decidir.',
+    'hero.cta1': 'Quiero probar una clase', 'hero.cta2': 'Ver los talleres',
+    'hero.fact1': 'propuestas 2026', 'hero.fact2': 'profesores',
+    'hero.fact3v': '2 de marzo', 'hero.fact3': 'empiezan las clases',
+    'hero.fact4v': 'Todo el año', 'hero.fact4': 'inscripción abierta',
+    'find.title': 'Buscá tu taller',
+    'find.lead': 'Escribí lo que te interesa o filtrá por día. Los datos se leen en vivo de la planilla de la coordinación cada vez que abrís esta página.',
+    'find.search': 'Buscar por nombre, tema o profesor', 'find.day': 'Día', 'find.cat': 'Área',
+    'find.fmt': 'Modalidad', 'find.any': 'Cualquiera', 'find.clear': 'Limpiar',
+    'week.title': 'La semana de un vistazo',
+    'week.lead': 'Todo lo que pasa cada día, ordenado por hora. Útil si ya sabés qué tarde tenés libre.',
+    'how.title': 'Cómo empezar, en tres pasos',
+    'how.s1t': 'Elegí un taller que te guste', 'how.s1b': 'Usá el buscador de arriba. Fijate el día y la hora que te queden cómodos.',
+    'how.s2t': 'Llamá o escribí por WhatsApp', 'how.s2b': 'Decinos cuál te interesa y te reservamos un lugar en la próxima clase. Te atiende una persona, no un contestador.',
+    'how.wa': 'Escribir por WhatsApp',
+    'how.s3t': 'Vení a probar. Esa clase no se paga.',
+    'how.s3b': 'Te sentás, mirás cómo trabaja el grupo y después decidís. Si te gusta, te inscribís. Si no, probás otro taller.',
+    'how.feeT': '¿Cuánto cuesta?',
+    'how.feeB': 'El arancel se paga por mes, del 1 al 15, con un valor bonificado dentro de esa fecha. No publicamos el importe en esta página porque cambia durante el año: preguntanos por teléfono o por WhatsApp y te lo decimos en el momento, sin compromiso.',
+    'info.title': 'Lo que conviene saber',
+    'contact.title': 'Dónde estamos y cómo escribirnos',
+    'contact.h1': 'Hablá con una persona', 'contact.h2': 'Dónde son las clases',
+    'contact.campus': 'Campus de la Universidad Blas Pascal',
+    'foot.org': 'Programa de la Asociación Civil Promover y la Secretaría de Extensión y Relaciones Internacionales de la Universidad Blas Pascal.',
+    'ui.results': 'taller', 'ui.results_p': 'talleres', 'ui.showing': 'Mostrando',
+    'ui.none': 'No hay nada con esa búsqueda. Probá limpiar los filtros, o llamanos al ' + PHONE + ' y te ayudamos a encontrar algo.',
+    'ui.loading': 'Cargando los talleres', 'ui.loadingBody': 'Leyendo la lista actual de la planilla de coordinación.',
+    'ui.errT': 'No pudimos cargar la lista de talleres',
+    'ui.errB': 'Falló la conexión con la planilla, así que preferimos no mostrarte una lista que puede estar vieja. Llamanos o escribinos al ' + PHONE + ' y te contamos qué se está dictando.',
+    'ui.retry': 'Reintentar',
+    'ui.teacher': 'Profesor', 'ui.period': 'Período', 'ui.also': 'También', 'ui.book': 'Libro',
+    'ui.level': 'Nivel', 'ui.places': 'Cupo', 'ui.sessions': 'Encuentros',
+    'ui.ask': 'Consultar por este taller',
+    'ui.tbc': 'Fecha a confirmar',
+    'ui.src': 'Datos de los talleres leídos en vivo de la planilla de coordinación a las ',
+    'ui.src2': '. Nada de esta página está guardado ni escrito a mano: si recargás, vuelve a consultar la planilla.',
+    'ui.noday': 'Fechas a confirmar',
+    'ui.teaches': 'Dicta', 'ui.more': 'Leer más', 'ui.less': 'Mostrar menos',
+    'ui.courseOne': 'taller en 2026', 'ui.courseMany': 'talleres en 2026',
+    'ui.seeCourses': 'Ver sus talleres',
+    'hol.title': 'Días sin clases',
+    'hol.lead': 'Son feriados nacionales que caen en un día que dictamos. Esas fechas no hay clases.',
+    'hol.one': 'taller', 'hol.many': 'talleres',
+    'hol.check': 'Ante cualquier duda, llamanos al ',
+    'cal.add': 'Agregar al calendario:', 'cal.addDay': 'Agregar al calendario:',
+    'cal.google': 'Google Calendar', 'cal.ics': 'Descargar (.ics)',
+    'cal.skips': 'Sin clases el:',
+    'cal.assumed': 'Duración aproximada, dos horas',
+    'cal.ask': 'Consultas:'
   };
 
   function t(key) {
-    var d = STRINGS[LANG] || {};
-    if (d[key] !== undefined) return d[key];
-    if (LANG === 'es') {
-      var node = document.querySelector('[data-i18n="' + key + '"]');
-      if (node && node.dataset.es) return node.dataset.es;
-    }
-    return (STRINGS.en[key] !== undefined) ? STRINGS.en[key] : key;
+    return STRINGS[key] !== undefined ? STRINGS[key] : key;
   }
 
   /* -------------------------------------------------------------- helpers */
@@ -328,9 +291,6 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  /* Google reads cells like "17:00" as a time and returns them as a
-     timeofday array or a Date(...) construction string. Neither is readable.
-     This turns any cell back into the text a person would see in the sheet. */
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
   function cellText(cell, type) {
@@ -351,9 +311,6 @@
   }
 
   /* ------------------------------------------------------- the live fetch */
-  /* One reader for every sheet on the page. A cache-busting parameter plus
-     no-store: the browser must not serve a previous response. Every page load
-     is a real query. */
   function readSheet(id) {
     return fetch(gviz(id) + '&nocache=' + Date.now(), { cache: 'no-store' })
       .then(function (res) {
@@ -394,7 +351,33 @@
 
     return readSheet(SHEET_ID)
       .then(function (rows) {
-        COURSES = rows.filter(function (o) { return o.course_name; });
+        COURSES = rows.map(function (r) {
+          var day = normDay(r.dia || r.day || '');
+          var altDay = normDay(r.dia_alternativo || r.alt_day || '');
+          return {
+            id: r.id || r.ID || '',
+            type: r.tipo || r.type || '',
+            category: normCat(r.area || r.categoria || r.category || ''),
+            course_name: r.nombre || r.course_name_es || r.course_name || '',
+            level: normLevel(r.nivel || r.level || ''),
+            language: normLang(r.idioma || r.language || ''),
+            format: normFmt(r.modalidad || r.format || ''),
+            venue: r.lugar || r.venue || '',
+            day: day,
+            time_24h: r.horario_24h || r.time_24h || '',
+            time_display: r.horario_display || r.time_display || '',
+            alt_day: altDay,
+            alt_time_24h: r.horario_alternativo_24h || r.alt_time_24h || '',
+            frequency: normFreq(r.frecuencia || r.frequency || ''),
+            sessions: r.encuentros || r.sessions || '',
+            period: periodEs(r.periodo || r.period || ''),
+            teacher: r.docente || r.profesor || r.teacher || '',
+            capacity: r.cupo || r.capacity || '',
+            coursebook: r.libro || r.coursebook || '',
+            notes: r.notas || r.notes_es || r.notes || '',
+            duration_min: r.duracion_min || r.duration_min || ''
+          };
+        }).filter(function (o) { return o.course_name; });
 
         FETCHED_AT = new Date();
         if (!COURSES.length) throw new Error('Sheet returned zero course rows');
@@ -411,8 +394,6 @@
         $('#results').innerHTML = '';
         $('#week').innerHTML = '';
         $('#count').textContent = '';
-        /* The hero counters are data too. If nothing was read, they must not
-           keep showing a number the page did not actually load. */
         $('#fact-courses').textContent = '–';
         $('#fact-teachers').textContent = '–';
       });
@@ -445,7 +426,7 @@
     return Object.keys(seen);
   }
 
-  function fillSelect(sel, values, map, sorter) {
+  function fillSelect(sel, values, sorter) {
     var el = $(sel);
     var current = el.value;
     var keep = el.querySelector('option[value=""]');
@@ -454,18 +435,18 @@
     (sorter ? values.slice().sort(sorter) : values.slice().sort()).forEach(function (v) {
       var o = document.createElement('option');
       o.value = v;
-      o.textContent = tr(map, v);
+      o.textContent = v;
       el.appendChild(o);
     });
     el.value = current;
   }
 
   function buildFilters() {
-    fillSelect('#f-day', uniq('day'), DAY_ES, function (a, b) {
+    fillSelect('#f-day', uniq('day'), function (a, b) {
       return DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b);
     });
-    fillSelect('#f-cat', uniq('category'), CAT_ES);
-    fillSelect('#f-fmt', uniq('format'), FMT_ES);
+    fillSelect('#f-cat', uniq('category'));
+    fillSelect('#f-fmt', uniq('format'));
     var n = $('#fact-courses'); if (n) n.textContent = COURSES.length;
     var teachers = {};
     COURSES.forEach(function (c) {
@@ -484,33 +465,17 @@
       if (cat && c.category !== cat) return false;
       if (fmt && c.format !== fmt) return false;
       if (!q) return true;
-      /* The haystack carries both the sheet's own English words and the
-         Spanish labels shown on screen, so a search works in either language. */
-      var hay = [c.course_name, c.course_name_es, c.teacher, c.category, c.language,
-                 c.level, c.notes, c.notes_es, c.venue, c.coursebook,
-                 tr(CAT_ES, c.category), tr(FMT_ES, c.format),
-                 tr(DAY_ES, c.day), tr(DAY_ES, c.alt_day)]
+      var hay = [c.course_name, c.teacher, c.category, c.language,
+                 c.level, c.notes, c.venue, c.coursebook,
+                 c.format, c.day, c.alt_day]
         .filter(Boolean).join(' ').toLowerCase();
       return expandQuery(q).some(function (term) { return hay.indexOf(term) !== -1; });
     });
   }
 
   /* --------------------------------------------------------------- render */
-  /* Any column may have an "_es" twin in the sheet. When the page is in
-     Spanish and that twin has a value, it wins. When it does not, the English
-     column shows rather than nothing. No text is invented here: the sheet is
-     the only source. Add course_name_es or notes_es to the sheet and this
-     picks them up with no code change. */
-  function pick(c, field) {
-    if (LANG === 'es' && c[field + '_es']) return c[field + '_es'];
-    return c[field] || '';
-  }
+  function courseTitle(c) { return c.course_name || ''; }
 
-  function courseTitle(c) { return pick(c, 'course_name'); }
-
-  /* The sheet gives the main slot a friendly time_display but the alternative
-     only a raw 24h value, so the two sat next to each other as "4:00 p.m."
-     and "09:00". Everything goes through this. */
   function prettyTime(raw) {
     var m = String(raw || '').match(/^(\d{1,2}):(\d{2})/);
     if (!m) return String(raw || '');
@@ -522,59 +487,45 @@
 
   function whenLabel(c) {
     var bits = [];
-    if (c.day) bits.push(tr(DAY_ES, c.day));
+    if (c.day) bits.push(c.day);
     if (c.time_display) bits.push(c.time_display);
+    else if (c.time_24h) bits.push(c.time_24h);
     if (!bits.length) return t('ui.noday');
     return bits.join(', ');
   }
 
   function card(c) {
-    var isWorkshop = /workshop/i.test(c.type || '');
-    var online = /online/i.test(c.format || '');
+    var isWorkshop = /taller/i.test(c.type || '') || /workshop/i.test(c.type || '');
+    var online = /virtual/i.test(c.format || '') || /online/i.test(c.format || '');
     var out = [];
     out.push('<article class="card' + (isWorkshop ? ' is-workshop' : '') + '">');
     out.push('<h3>' + esc(courseTitle(c)) + '</h3>');
 
     out.push('<div class="card-meta">');
     out.push('<span class="chip chip-when">' + esc(whenLabel(c)) + '</span>');
-    if (c.format) out.push('<span class="chip' + (online ? ' chip-online' : '') + '">' + esc(tr(FMT_ES, c.format)) + '</span>');
-    if (c.category) out.push('<span class="chip' + (isWorkshop ? ' chip-new' : '') + '">' + esc(tr(CAT_ES, c.category)) + '</span>');
-    if (c.frequency) out.push('<span class="chip">' + esc(tr(FREQ_ES, c.frequency)) + '</span>');
+    if (c.format) out.push('<span class="chip' + (online ? ' chip-online' : '') + '">' + esc(c.format) + '</span>');
+    if (c.category) out.push('<span class="chip' + (isWorkshop ? ' chip-new' : '') + '">' + esc(c.category) + '</span>');
+    if (c.frequency) out.push('<span class="chip">' + esc(c.frequency) + '</span>');
     out.push('</div>');
 
     if (c.alt_day) {
       out.push('<p class="card-line">' + esc(t('ui.also')) + ': <strong>' +
-        esc(tr(DAY_ES, c.alt_day)) + (c.alt_time_24h ? ', ' + esc(prettyTime(c.alt_time_24h)) : '') + '</strong></p>');
+        esc(c.alt_day) + (c.alt_time_24h ? ', ' + esc(prettyTime(c.alt_time_24h)) : '') + '</strong></p>');
     }
     if (c.teacher) out.push('<p class="card-line">' + esc(t('ui.teacher')) + ': <strong>' + esc(c.teacher) + '</strong></p>');
-    if (c.level) out.push('<p class="card-line">' + esc(t('ui.level')) + ': <strong>' + esc(tr(LEVEL_ES, c.level)) + '</strong></p>');
+    if (c.level) out.push('<p class="card-line">' + esc(t('ui.level')) + ': <strong>' + esc(c.level) + '</strong></p>');
     if (c.period) {
-      out.push('<p class="card-line">' + esc(t('ui.period')) + ': <strong>' +
-        esc(LANG === 'es' ? periodEs(c.period) : c.period) + '</strong></p>');
+      out.push('<p class="card-line">' + esc(t('ui.period')) + ': <strong>' + esc(c.period) + '</strong></p>');
     }
     if (c.capacity) out.push('<p class="card-line">' + esc(t('ui.places')) + ': <strong>' + esc(c.capacity) + '</strong></p>');
     if (c.sessions) out.push('<p class="card-line">' + esc(t('ui.sessions')) + ': <strong>' + esc(c.sessions) + '</strong></p>');
     if (c.coursebook) out.push('<p class="card-line">' + esc(t('ui.book')) + ': <strong>' + esc(c.coursebook) + '</strong></p>');
-    var note = pick(c, 'notes');
-    if (note) out.push('<p class="card-note">' + esc(note) + '</p>');
+    if (c.notes) out.push('<p class="card-note">' + esc(c.notes) + '</p>');
 
-    var ask = encodeURIComponent(
-      (LANG === 'es' ? 'Hola, quiero consultar por el taller: ' : 'Hello, I would like to ask about: ') + courseTitle(c)
-    );
+    var ask = encodeURIComponent('Hola, quiero consultar por el taller: ' + courseTitle(c));
     out.push('<p class="card-cta"><a href="' + WA + '?text=' + ask + '" rel="noopener">' + esc(t('ui.ask')) + '</a></p>');
 
-    /* Only for a course the sheet describes as a real weekly slot. A course
-       with fixed dates, a fortnightly rhythm or no time at all gets no button
-       rather than a series I would have to invent. */
     if (exportable(c)) {
-      /* Two ways to take the same event away: straight into Google Calendar,
-         or a file every other calendar app opens. */
-      /* Google is a real link, not a button. window.open with a features
-         string is treated as a popup by Chrome and gets blocked silently:
-         it returns null, throws nothing, and the visitor sees a button that
-         does nothing. An anchor is never blocked, works with middle-click
-         and "open in new tab", and is honest about being navigation.
-         The .ics stays a button, because generating a file is an action. */
       function pair(alt, label) {
         var a = alt ? ' data-alt="1"' : '';
         var href = googleCalendarURL(c, alt);
@@ -590,9 +541,8 @@
       }
       out.push('<div class="card-cal"><span class="card-cal-label">' + esc(t('cal.add')) + '</span>' +
         (c.alt_day
-          /* Two slots is a choice, not two classes, so each gets its own pair. */
-          ? pair(false, tr(DAY_ES, c.day) + (c.time_display ? ' ' + c.time_display : '')) +
-            pair(true, tr(DAY_ES, c.alt_day) + (c.alt_time_24h ? ' ' + prettyTime(c.alt_time_24h) : ''))
+          ? pair(false, c.day + (c.time_display ? ' ' + c.time_display : '')) +
+            pair(true, c.alt_day + (c.alt_time_24h ? ' ' + prettyTime(c.alt_time_24h) : ''))
           : pair(false, '')) +
         '</div>');
     }
@@ -608,7 +558,6 @@
     $('#count').textContent = t('ui.showing') + ' ' + list.length + ' ' +
       (list.length === 1 ? t('ui.results') : t('ui.results_p'));
 
-    /* Only the download needs a handler now: the Google option is an anchor. */
     $('#results').querySelectorAll('button.card-cal-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var c = COURSES.filter(function (x) { return x.id === btn.getAttribute('data-cal'); })[0];
@@ -633,7 +582,7 @@
     });
     $('#week').innerHTML = days.map(function (d) {
       var items = byDay[d].sort(function (a, b) { return a.sort.localeCompare(b.sort); });
-      return '<div class="day"><h3>' + esc(tr(DAY_ES, d)) + '</h3><ul>' +
+      return '<div class="day"><h3>' + esc(d) + '</h3><ul>' +
         items.map(function (i) {
           return '<li><time>' + esc(i.label || '--') + '</time> ' + esc(i.name) + '</li>';
         }).join('') + '</ul></div>';
@@ -642,24 +591,31 @@
 
   function stampSource() {
     if (!FETCHED_AT) return;
-    var time = FETCHED_AT.toLocaleString(LANG === 'es' ? 'es-AR' : 'en-IE');
+    var time = FETCHED_AT.toLocaleString('es-AR');
     $('#datasource').innerHTML =
       esc(t('ui.src')) + '<strong>' + esc(time) + '</strong>' + esc(t('ui.src2')) +
       ' <a href="https://docs.google.com/spreadsheets/d/' + SHEET_ID + '" rel="noopener">Google Sheet</a>.';
   }
 
-
   /* -------------------------------------------------------------- teachers */
-  /* A second sheet, read the same way as the first. If the id is not set, or
-     the sheet cannot be read, the section and its nav link stay hidden. A
-     missing biography is left blank rather than filled with something
-     plausible: six people in the 2026 programme have no bio in any source. */
   function loadTeachers() {
     if (!TEACHERS_SHEET_ID) return Promise.resolve();
     return readSheet(TEACHERS_SHEET_ID)
       .then(function (rows) {
         TEACHERS = rows
-          .filter(function (r) { return r.name && String(r.active || 'yes').toLowerCase() !== 'no'; })
+          .map(function (r) {
+            var act = r.activo !== undefined ? r.activo : (r.active !== undefined ? r.active : 'si');
+            return {
+              id: r.id || r.ID || '',
+              name: r.nombre || r.name || '',
+              teaches: r.dicta || r.teaches_es || r.teaches || r.teaches_en || '',
+              bio: r.bio || r.bio_es || r.biografia || r.bio_en || '',
+              photo_url: r.foto_url || r.photo_url || '',
+              active: String(act).toLowerCase() !== 'no',
+              sort_order: r.orden !== undefined ? r.orden : r.sort_order
+            };
+          })
+          .filter(function (r) { return r.name && r.active; })
           .sort(function (a, b) {
             var x = parseInt(a.sort_order, 10), y = parseInt(b.sort_order, 10);
             if (!isNaN(x) && !isNaN(y) && x !== y) return x - y;
@@ -671,8 +627,6 @@
         renderTeachers();
       })
       .catch(function () {
-        /* Silent by design. A teacher sheet that cannot be read should not
-           put an error on a page whose main job is the timetable. */
         $('#profesores').hidden = true;
         $('#nav-teachers').hidden = true;
       });
@@ -689,8 +643,8 @@
 
   function renderTeachers() {
     $('#teachers').innerHTML = TEACHERS.map(function (p, i) {
-      var bio = (LANG === 'es' ? p.bio_es : p.bio_en) || p.bio_es || p.bio_en || '';
-      var teaches = (LANG === 'es' ? p.teaches_es : p.teaches_en) || p.teaches_es || p.teaches_en || '';
+      var bio = p.bio || '';
+      var teaches = p.teaches || '';
       var mine = teacherCourses(p.name);
       var count = mine.length
         ? '<p class="teacher-count">' + mine.length + ' ' +
@@ -728,7 +682,6 @@
       });
     });
 
-    /* Sends the visitor to the finder with that teacher already searched. */
     $('#teachers').querySelectorAll('.teacher-link').forEach(function (btn) {
       btn.addEventListener('click', function () {
         $('#q').value = btn.getAttribute('data-teacher');
@@ -740,20 +693,23 @@
     });
   }
 
-
   /* ------------------------------------------------------------------ info */
-  /* The practical cards used to be hand-written in the HTML. They are policy
-     text that coordination should be able to change without touching code,
-     so they now come from a sheet like everything else. */
   function loadInfo() {
     if (!INFO_SHEET_ID) return Promise.resolve();
     return readSheet(INFO_SHEET_ID)
       .then(function (rows) {
         INFO = rows
-          .filter(function (r) {
-            return (r.title_es || r.title_en) &&
-                   String(r.active || 'yes').toLowerCase() !== 'no';
+          .map(function (r) {
+            var act = r.activo !== undefined ? r.activo : (r.active !== undefined ? r.active : 'si');
+            return {
+              id: r.id || r.ID || '',
+              title: r.titulo || r.title_es || r.title || r.title_en || '',
+              body: r.texto || r.body_es || r.cuerpo || r.body || r.body_en || '',
+              active: String(act).toLowerCase() !== 'no',
+              sort_order: r.orden !== undefined ? r.orden : r.sort_order
+            };
           })
+          .filter(function (r) { return r.title && r.active; })
           .sort(function (a, b) {
             var x = parseInt(a.sort_order, 10), y = parseInt(b.sort_order, 10);
             if (!isNaN(x) && !isNaN(y) && x !== y) return x - y;
@@ -770,18 +726,12 @@
 
   function renderInfo() {
     $('#info-grid').innerHTML = INFO.map(function (r) {
-      var title = (LANG === 'es' ? r.title_es : r.title_en) || r.title_es || r.title_en || '';
-      var body = (LANG === 'es' ? r.body_es : r.body_en) || r.body_es || r.body_en || '';
-      return '<div class="info"><h3>' + esc(title) + '</h3>' +
-             (body ? '<p>' + esc(body) + '</p>' : '') + '</div>';
+      return '<div class="info"><h3>' + esc(r.title) + '</h3>' +
+             (r.body ? '<p>' + esc(r.body) + '</p>' : '') + '</div>';
     }).join('');
   }
 
-
   /* ------------------------------------------------------------- holidays */
-  /* Local-date parsing on purpose. new Date('2026-07-09') is parsed as UTC
-     midnight, which in Argentina is still the 8th, and a notice that names
-     the wrong day is worse than no notice at all. */
   function parseISO(s) {
     var p = String(s || '').split('-');
     if (p.length !== 3) return null;
@@ -789,7 +739,7 @@
     return isNaN(d.getTime()) ? null : d;
   }
 
-  var JS_DAY = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var JS_DAY = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
   function teachingDays() {
     var set = {};
@@ -801,7 +751,6 @@
   }
 
   function loadHolidays() {
-    /* Nothing to cross-check against means nothing trustworthy to say. */
     if (!COURSES.length) return Promise.resolve();
 
     var year = new Date().getFullYear();
@@ -817,9 +766,6 @@
         var start = parseISO(TERM_START), end = parseISO(TERM_END);
         var teach = teachingDays();
 
-        /* Every holiday inside the term that lands on a day we teach. The
-           calendar export needs all of them, including ones already past,
-           because an exported series still covers the whole year. */
         HOLIDAYS_ALL = list.map(function (h) {
           var d = parseISO(h && h.fecha);
           if (!d || !h.nombre || d < start || d > end) return null;
@@ -832,17 +778,13 @@
           return { date: d, name: String(h.nombre), day: dayName, courses: affected };
         }).filter(Boolean).sort(function (a, b) { return a.date - b.date; });
 
-        /* The notice shows only what is still ahead, and only a few. */
         HOLIDAYS = HOLIDAYS_ALL.filter(function (h) { return h.date >= today; })
                                .slice(0, MAX_NOTICES);
 
         renderHolidays();
-        render();   /* course cards can now carry a calendar button */
+        render();
       })
       .catch(function () {
-        /* Silence, by design. The export still works: a calendar without
-           holiday exclusions is worse than one with them, but far better
-           than no calendar, and it never states anything false. */
         HOLIDAYS = [];
         HOLIDAYS_ALL = [];
         $('#holidays').hidden = true;
@@ -854,12 +796,11 @@
     var box = $('#holidays');
     if (!HOLIDAYS.length) { box.hidden = true; box.innerHTML = ''; return; }
 
-    var locale = LANG === 'es' ? 'es-AR' : 'en-IE';
     box.innerHTML =
       '<h3>' + esc(t('hol.title')) + '</h3>' +
       '<p class="holidays-lead">' + esc(t('hol.lead')) + '</p>' +
       '<ul>' + HOLIDAYS.map(function (h) {
-        var when = h.date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
+        var when = h.date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
         return '<li><strong>' + esc(when) + '</strong> <span class="holidays-name">' + esc(h.name) + '</span>' +
                ' <span class="holidays-count">' + h.courses + ' ' +
                esc(h.courses === 1 ? t('hol.one') : t('hol.many')) + '</span></li>';
@@ -869,43 +810,34 @@
     box.hidden = false;
   }
 
-
   /* ---------------------------------------------------------- calendar */
-  /* iCalendar export. No API, no server, no request leaves the browser: the
-     file is built from data the page already holds and handed straight to a
-     download. RFC 5545, so Google Calendar, Apple Calendar and Outlook all
-     open it.
-     Only offered for courses the sheet can actually describe as a repeating
-     weekly slot. Fortnightly, fixed-date and to-be-confirmed courses get no
-     button rather than a guessed series. */
+  var DEFAULT_MINUTES = 120;
+  var ICS_DAY = {
+    Lunes: 'MO', Martes: 'TU', Miércoles: 'WE', Jueves: 'TH',
+    Viernes: 'FR', Sábado: 'SA', Domingo: 'SU',
+    Monday: 'MO', Tuesday: 'TU', Wednesday: 'WE', Thursday: 'TH',
+    Friday: 'FR', Saturday: 'SA', Sunday: 'SU'
+  };
+  var MONTH_END = {
+    enero: '0131', febrero: '0228', marzo: '0331', abril: '0430',
+    mayo: '0531', junio: '0630', julio: '0731', agosto: '0831',
+    septiembre: '0930', octubre: '1031', noviembre: '1130', diciembre: '1231',
+    january: '0131', february: '0228', march: '0331', april: '0430',
+    may: '0531', june: '0630', july: '0731', august: '0831',
+    september: '0930', october: '1031', november: '1130', december: '1231'
+  };
 
-  var DEFAULT_MINUTES = 120;   /* the programme says classes are generally two
-                                  hours. Used only when the sheet has no
-                                  duration_min, and said out loud in the file. */
-  var ICS_DAY = { Monday:'MO', Tuesday:'TU', Wednesday:'WE', Thursday:'TH',
-                  Friday:'FR', Saturday:'SA', Sunday:'SU' };
-  var MONTH_END = { january:'0131', february:'0228', march:'0331', april:'0430',
-                    may:'0531', june:'0630', july:'0731', august:'0831',
-                    september:'0930', october:'1031', november:'1130', december:'1231' };
-
-  /* duration_min is meant to be a plain number of minutes, but parseInt alone
-     turns "2 horas" into 2 and, worse, turns Google Sheets' own Duration
-     format "02:00" into 2 as well. Both would put a two minute class in
-     somebody's calendar and say nothing about it.
-     So: accept a plain count of minutes, accept H:MM, and reject anything
-     outside a plausible class length. A rejected value falls back to the
-     default, which the file already labels as approximate. */
   var MIN_MINUTES = 20, MAX_MINUTES = 480;
 
   function durationMinutes(raw) {
     var s = String(raw == null ? '' : raw).trim();
     if (!s) return null;
 
-    var hm = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);   /* 02:00, 1:30 */
+    var hm = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
     var mins = hm ? (+hm[1] * 60 + +hm[2]) : null;
 
     if (mins === null) {
-      var n = s.match(/^(\d{1,4})(?:\s*(?:min|mins|minutos)?)?$/i);   /* 120, 120 min */
+      var n = s.match(/^(\d{1,4})(?:\s*(?:min|mins|minutos)?)?$/i);
       if (!n) return null;
       mins = +n[1];
     }
@@ -914,12 +846,9 @@
   }
 
   function exportable(c) {
-    return c.frequency === 'Weekly' && !!c.day && !!(c.time_24h || c.time_display);
+    return (c.frequency === 'Semanal' || c.frequency === 'Weekly') && !!c.day && !!(c.time_24h || c.time_display);
   }
 
-  /* "August - October" ends in October, not at the end of the year. Reads the
-     last month named in the period and stops there, capped at the term end.
-     A period with no month falls back to the term end rather than guessing. */
   function seriesEnd(period) {
     var last = null, low = String(period || '').toLowerCase();
     Object.keys(MONTH_END).forEach(function (m) {
@@ -935,7 +864,6 @@
     var raw = useAlt ? (c.alt_time_24h || '') : (c.time_24h || '');
     var m = String(raw).match(/(\d{1,2}):(\d{2})/);
     if (m) return [ +m[1], +m[2] ];
-    /* fall back to the display string, e.g. "5:00 p.m." */
     var d = String(useAlt ? c.alt_time_24h : c.time_display).match(/(\d{1,2}):(\d{2})\s*([ap])/i);
     if (!d) return null;
     var h = +d[1] % 12; if (/p/i.test(d[3])) h += 12;
@@ -944,7 +872,6 @@
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
 
-  /* RFC 5545: escape the delimiters, and fold lines longer than 75 octets. */
   function icsText(s) {
     return String(s == null ? '' : s)
       .replace(/\\/g, '\\\\')
@@ -959,9 +886,6 @@
     return out + '\r\n ' + rest;
   }
 
-  /* One calculation, two destinations. The .ics download and the Google
-     Calendar link must never disagree about when a class is, so both are
-     built from this. */
   var TZ = 'America/Argentina/Cordoba';
 
   function eventFor(c, useAlt) {
@@ -969,7 +893,6 @@
     var time = hhmm(c, useAlt);
     if (!day || !time || !ICS_DAY[day]) return null;
 
-    /* first occurrence on or after the term start */
     var d = parseISO(TERM_START);
     while (JS_DAY[d.getDay()] !== day) d.setDate(d.getDate() + 1);
 
@@ -998,7 +921,7 @@
       description: (function () {
         var out = [];
         if (c.teacher) out.push(t('ui.teacher') + ': ' + c.teacher);
-        if (c.period) out.push(t('ui.period') + ': ' + (LANG === 'es' ? periodEs(c.period) : c.period));
+        if (c.period) out.push(t('ui.period') + ': ' + c.period);
         if (assumed) out.push(t('cal.assumed'));
         return out;
       })()
@@ -1020,8 +943,6 @@
       'DTEND;TZID=' + TZ + ':' + e.end,
       'RRULE:' + e.rrule
     ];
-    /* A real EXDATE, which every calendar app honours: the holiday dates are
-       removed from the series outright. */
     e.exdates.forEach(function (x) { lines.push('EXDATE;TZID=' + TZ + ':' + x); });
 
     var desc = e.description.concat([t('cal.ask') + ' ' + PHONE]);
@@ -1033,12 +954,6 @@
     return lines.map(fold).join('\r\n') + '\r\n';
   }
 
-  /* Google Calendar's template URL takes a recurrence rule, but its handling
-     of EXDATE is undocumented and it may drop the exclusions. So the dates we
-     skip are ALSO written into the description in plain words. If Google
-     honours the EXDATE the reader gets both; if it ignores it, the reader
-     still sees which dates have no class instead of silently getting a
-     reminder for one. The .ics download does not have this weakness. */
   function googleCalendarURL(c, useAlt) {
     var e = eventFor(c, useAlt);
     if (!e) return null;
@@ -1049,8 +964,7 @@
     var desc = e.description.slice();
     if (e.skipped.length) {
       desc.push(t('cal.skips') + ' ' + e.skipped.map(function (h) {
-        return h.date.toLocaleDateString(LANG === 'es' ? 'es-AR' : 'en-IE',
-          { day: 'numeric', month: 'long' });
+        return h.date.toLocaleDateString('es-AR', { day: 'numeric', month: 'long' });
       }).join(', '));
     }
     desc.push(t('cal.ask') + ' ' + PHONE);
@@ -1093,25 +1007,7 @@
     btn.setAttribute('title', label);
   }
 
-  /* ------------------------------------------------------------ language */
-  function captureSpanish() {
-    document.querySelectorAll('[data-i18n]').forEach(function (el) {
-      el.dataset.es = el.textContent;
-    });
-  }
-
-  /* ---------------------------------------------------------- small-screen menu
-   *
-   * Replaces a horizontally scrolling row of links. The state lives in one
-   * place, the `hidden` attribute on the nav, and `syncNav` is the only thing
-   * that writes it. Everything else asks syncNav to run again.
-   *
-   * `hidden` is used rather than a class because the nav must be genuinely
-   * removed from the accessibility tree when closed, not merely invisible.
-   * The stylesheet answers it explicitly with `.site-nav[hidden]{display:none}`,
-   * because an author `display` rule beats the attribute otherwise. That has
-   * already shipped as a defect twice on this site.
-   */
+  /* ---------------------------------------------------------- small-screen menu */
   var NARROW = window.matchMedia('(max-width:760px)');
   var menuOpen = false;
 
@@ -1120,9 +1016,6 @@
     if (!nav || !btn) return;
 
     if (!NARROW.matches) {
-      /* Wide: there is no menu, only a row of links. Any open state is
-         discarded rather than remembered, so returning to a narrow width
-         does not reopen a menu nobody asked for. */
       menuOpen = false;
       btn.hidden = true;
       nav.hidden = false;
@@ -1153,9 +1046,6 @@
 
     btn.addEventListener('click', function () { setMenu(!menuOpen, !menuOpen ? false : true); });
 
-    /* Choosing a destination is the end of using the menu. Leaving it open
-       over the section you just asked for is the most common way this
-       pattern goes wrong. */
     nav.addEventListener('click', function (e) {
       if (e.target.closest('a') && NARROW.matches) setMenu(false, false);
     });
@@ -1164,11 +1054,6 @@
       if (e.key === 'Escape' && menuOpen) setMenu(false, true);
     });
 
-    /* Clicking the page closes the menu. The header tools do not count as
-       "the page": someone who opens the menu and then presses A+ is making
-       the menu easier to read, and closing it on them is the opposite of
-       what they asked for. The same goes for the language and theme buttons,
-       whose whole effect is on the menu they are looking at. */
     document.addEventListener('click', function (e) {
       if (!menuOpen) return;
       if (nav.contains(e.target) || btn.contains(e.target)) return;
@@ -1176,13 +1061,6 @@
       setMenu(false, false);
     });
 
-    /* Crossing the breakpoint, by rotating a phone or dragging a window edge.
-       Two listeners for one job, deliberately:
-       - `change` on the media query is the correct event and fires once.
-       - `resize` is the belt and braces. It costs one comparison per event,
-         because syncNav reads NARROW.matches rather than trusting the caller.
-       `addListener` is the old spelling, kept because Safari only accepted
-       the modern one from version 14, and this audience keeps devices. */
     if (NARROW.addEventListener) NARROW.addEventListener('change', syncNav);
     else if (NARROW.addListener) NARROW.addListener(syncNav);
     window.addEventListener('resize', syncNav);
@@ -1190,35 +1068,9 @@
     syncNav();
   }
 
-  function applyLang() {
-    document.documentElement.lang = LANG;
-    document.querySelectorAll('[data-i18n]').forEach(function (el) {
-      var key = el.dataset.i18n;
-      el.textContent = (LANG === 'es') ? el.dataset.es : t(key);
-    });
-    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark');
-    document.title = t('doc.title');
-    $('#q').placeholder = t('find.placeholder');
-    /* The button shows the language you would be switching TO, which is why
-       the Spanish page carries the British flag and not the other way round.
-       A flag is a weaker signifier than "ES": it names a country, not a
-       language. The label and the tooltip carry the actual meaning, and they
-       are what a screen reader reads out. */
-    $('#lang').innerHTML = (LANG === 'es') ? FLAG_GB : FLAG_AR;
-    $('#lang').setAttribute('aria-label', LANG === 'es' ? 'Switch to English' : 'Cambiar a español');
-    $('#lang').title = LANG === 'es' ? 'Switch to English' : 'Cambiar a español';
-    syncNav();   // the menu button carries a word, so it changes with the language
-    if (COURSES.length) { buildFilters(); render(); renderWeek(); stampSource(); }
-    if (TEACHERS.length) renderTeachers();
-    if (INFO.length) renderInfo();
-    if (HOLIDAYS.length) renderHolidays();
-  }
-
   /* --------------------------------------------------------------- start */
   document.addEventListener('DOMContentLoaded', function () {
-    captureSpanish();
     wireNav();
-    applyLang();
 
     ['#q', '#f-day', '#f-cat', '#f-fmt'].forEach(function (sel) {
       $(sel).addEventListener('input', render);
@@ -1236,17 +1088,9 @@
       this.setAttribute('aria-pressed', String(!big));
     });
 
-    /* Light is the default. Dark is a choice the visitor makes and we
-       remember, so they do not have to make it again on every visit. The only
-       thing stored is the word "dark", and it never leaves the browser. */
     applyTheme(document.documentElement.getAttribute('data-theme') === 'dark');
     $('#theme').addEventListener('click', function () {
       applyTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
-    });
-
-    $('#lang').addEventListener('click', function () {
-      LANG = (LANG === 'es') ? 'en' : 'es';
-      applyLang();
     });
 
     loadCourses().then(loadTeachers).then(loadInfo).then(loadHolidays);

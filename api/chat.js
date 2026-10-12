@@ -1,7 +1,5 @@
 /* aulauniversitaria assistant, Vercel serverless function.
  *
- * Built by Nadia Kaufman to Tomás's 23 criteria.
- *
  * Knowledge is NOT in this file. Both sources are fetched over the network on
  * every request: the course sheet and the FAQ sheet. Nothing is cached, and
  * there is no fallback copy. If a source is unreachable the assistant says so
@@ -10,7 +8,7 @@
  * The API key lives in the GEMINI_API_KEY environment variable on Vercel.
  * It is never in this repository and never reaches the browser.
  *
- * Nothing about a conversation is logged or stored. See criterion 21.
+ * Nothing about a conversation is logged or stored.
  */
 
 import { createHash, randomBytes } from 'node:crypto';
@@ -21,23 +19,7 @@ const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const PHONE = '351 3 261002';
 const WA = 'https://wa.me/5493513261002';
 
-/* ------------------------------------------------------------ rate limit
- *
- * Best effort, and worth being precise about what that means. Vercel runs
- * several independent instances, each with its own memory, and a cold start
- * wipes the counters. So a determined attacker spread across instances gets
- * more than the numbers below. What this reliably stops is the realistic
- * case: one script, one browser tab, or one person hammering the box, which
- * is what would quietly drain the Gemini quota.
- *
- * A shared store (Vercel KV or Upstash) would make the limit exact. It also
- * adds a paid service and another credential for an organisation with no
- * engineer, which is a poor trade until the traffic justifies it.
- *
- * Privacy: the raw IP is never stored. It is hashed with a salt generated
- * fresh in memory at instance start and never written down, so the stored
- * value cannot be reversed to an address and does not survive a restart.
- */
+/* ------------------------------------------------------------ rate limit */
 const SALT = randomBytes(16).toString('hex');
 const LIMITS = [
   { windowMs: 60 * 1000, max: 10, name: 'minute' },
@@ -78,8 +60,6 @@ function rateLimit(req) {
   BUCKETS.set(key, hits);
   globalHits.push(now);
 
-  /* Drop keys that have gone quiet, so a long-running instance cannot grow
-     its memory without bound. */
   if (BUCKETS.size > MAX_TRACKED) {
     for (const [k, v] of BUCKETS) {
       if (!v.length || now - v[v.length - 1] > longest) BUCKETS.delete(k);
@@ -89,9 +69,7 @@ function rateLimit(req) {
   return { limited: false };
 }
 
-/* Any shape a fee amount could take, in Spanish or English. Deliberately
-   broad: a false positive costs one replaced answer, a false negative
-   publishes a price the organisation never agreed to. */
+/* Any shape a fee amount could take. */
 const MONEY = new RegExp([
   '\\$\\s*\\d',
   '\\b\\d{1,3}(?:[.,]\\d{3})+\\b',
@@ -103,18 +81,16 @@ const MONEY = new RegExp([
   '\\b(?:costs?|price|fee)\\b(?:\\W+\\w+){0,3}?\\W+\\$?\\s*\\d{3,}'
 ].join('|'), 'i');
 
-/* headers=1 is not optional. gviz guesses whether row 1 is a header by
-   comparing column types, so a sheet whose columns are ALL text (the FAQ
-   sheet) gets no header detected: the labels come back as A, B, C and every
-   field reads as undefined. The bug is silent, because the row count still
-   looks nearly right. Forcing headers=1 removes the guess. */
-/* National public holidays. Same rule as the page: this may tell someone a
-   date has no class, never that a date has one. If the API fails, the
-   assistant is told nothing about holidays rather than something wrong. */
 const HOLIDAYS_API = 'https://api.argentinadatos.com/v1/feriados/';
 const TERM_START = '2026-03-02';
 const TERM_END = '2026-11-30';
-const JS_DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const JS_DAY = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const EN_TO_ES_DAY = {
+  Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miércoles',
+  Thursday: 'Jueves', Friday: 'Viernes', Saturday: 'Sábado',
+  Sunday: 'Domingo', 'Saturday-Sunday': 'Sábado y domingo'
+};
+const normDay = (d) => EN_TO_ES_DAY[d] || d || '';
 
 function parseISO(s) {
   const p = String(s || '').split('-');
@@ -132,33 +108,33 @@ async function readHolidays(courses) {
 
     const start = parseISO(TERM_START);
     const end = parseISO(TERM_END);
-    /* Only dates still ahead of us. The assistant describes these as the
-       holidays coming up, so a date that has already passed would make that
-       description untrue. */
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const from = today > start ? today : start;
 
     const teach = new Set();
-    courses.forEach((c) => { if (c.day) teach.add(c.day); if (c.alt_day) teach.add(c.alt_day); });
+    courses.forEach((c) => {
+      const d1 = normDay(c.dia || c.day);
+      const d2 = normDay(c.dia_alternativo || c.alt_day);
+      if (d1) teach.add(d1);
+      if (d2) teach.add(d2);
+    });
 
     return list.map((h) => {
       const d = parseISO(h && h.fecha);
       if (!d || !h.nombre || d < from || d > end) return null;
       const day = JS_DAY[d.getDay()];
       if (!teach.has(day)) return null;
-      const n = courses.filter((c) => c.day === day || c.alt_day === day).length;
+      const n = courses.filter((c) => normDay(c.dia || c.day) === day || normDay(c.dia_alternativo || c.alt_day) === day).length;
       return n ? { fecha: h.fecha, nombre: String(h.nombre), day, courses: n } : null;
     }).filter(Boolean);
   } catch (e) {
-    return [];   /* silence, never a guess */
+    return [];
   }
 }
 
 const gviz = (id) =>
   `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&headers=1&nocache=${Date.now()}`;
 
-/* Google returns times as a timeofday array or a Date(...) string. Turn any
-   cell back into the text a person would see in the sheet. */
 const pad2 = (n) => (n < 10 ? '0' : '') + n;
 function cellText(cell, type) {
   if (!cell || cell.v == null || cell.v === '') return '';
@@ -183,9 +159,6 @@ async function readSheet(id) {
   const types = payload.table.cols.map((c) => c.type || 'string');
   let rows = payload.table.rows || [];
 
-  /* Belt and braces. If headers=1 was ignored for any reason, the labels come
-     back empty and row 1 is really the header. Promote it rather than
-     returning 47 objects keyed by nothing. */
   if (!cols.some(Boolean) && rows.length) {
     cols = (rows[0].c || []).map((c, i) => (c && c.v ? String(c.v).trim() : 'col' + i));
     rows = rows.slice(1);
@@ -202,56 +175,43 @@ async function readSheet(id) {
     .filter((o) => Object.values(o).some(Boolean));
 }
 
-/* Both sheets become plain text the model reads. Compact, because a long
-   prompt is a slow and expensive prompt, and this runs on every message. */
 function coursesToText(rows) {
   return rows.map((c) => {
+    const nombre = c.nombre || c.course_name_es || c.course_name || '';
+    const area = c.area || c.categoria || c.category || '';
+    const nivel = c.nivel || c.level || '';
+    const modalidad = c.modalidad || c.format || '';
+    const dia = normDay(c.dia || c.day || '');
+    const horario = c.horario_display || c.horario_24h || c.time_display || c.time_24h || '';
+    const altDia = normDay(c.dia_alternativo || c.alt_day || '');
+    const altHorario = c.horario_alternativo_24h || c.alt_time_24h || '';
+    const frecuencia = c.frecuencia || c.frequency || '';
+    const docente = c.docente || c.profesor || c.teacher || 'sin asignar';
+    const periodo = c.periodo || c.period || '';
+    const lugar = c.lugar || c.venue || '';
+    const cupo = c.cupo || c.capacity || '';
+    const libro = c.libro || c.coursebook || '';
+    const notas = c.notas || c.notes_es || c.notes || '';
     const bits = [
       `ID ${c.id}`,
-      `NOMBRE: ${c.course_name_es || c.course_name}`,
-      c.course_name_es && c.course_name ? `NAME (EN): ${c.course_name}` : '',
-      `AREA: ${c.category}`,
-      c.level ? `NIVEL: ${c.level}` : '',
-      `MODALIDAD: ${c.format}`,
-      c.day ? `DIA: ${c.day} ${c.time_display || c.time_24h || ''}` : '',
-      c.alt_day ? `DIA ALTERNATIVO: ${c.alt_day} ${c.alt_time_24h || ''}` : '',
-      c.frequency ? `FRECUENCIA: ${c.frequency}` : '',
-      c.teacher ? `DOCENTE: ${c.teacher}` : 'DOCENTE: sin asignar',
-      c.period ? `PERIODO: ${c.period}` : '',
-      c.venue ? `LUGAR: ${c.venue}` : '',
-      c.capacity ? `CUPO: ${c.capacity}` : '',
-      c.coursebook ? `LIBRO: ${c.coursebook}` : '',
-      (c.notes_es || c.notes) ? `NOTAS: ${c.notes_es || c.notes}` : ''
+      `NOMBRE: ${nombre}`,
+      area ? `AREA: ${area}` : '',
+      nivel ? `NIVEL: ${nivel}` : '',
+      modalidad ? `MODALIDAD: ${modalidad}` : '',
+      dia ? `DIA: ${dia} ${horario}`.trim() : '',
+      altDia ? `DIA ALTERNATIVO: ${altDia} ${altHorario}`.trim() : '',
+      frecuencia ? `FRECUENCIA: ${frecuencia}` : '',
+      `DOCENTE: ${docente}`,
+      periodo ? `PERIODO: ${periodo}` : '',
+      lugar ? `LUGAR: ${lugar}` : '',
+      cupo ? `CUPO: ${cupo}` : '',
+      libro ? `LIBRO: ${libro}` : '',
+      notas ? `NOTAS: ${notas}` : ''
     ].filter(Boolean);
     return bits.join(' | ');
   }).join('\n');
 }
 
-/* Display maps for the cards. The model chooses WHICH courses to show, by id.
-   It never supplies the contents of a card: every field below is copied from
-   the sheet row. That way a card cannot contain an invented time or teacher
-   even if the model hallucinates one in its prose. */
-const DAY_ES = {
-  Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miércoles', Thursday: 'Jueves',
-  Friday: 'Viernes', Saturday: 'Sábado', Sunday: 'Domingo',
-  'Saturday-Sunday': 'Sábado y domingo'
-};
-const FMT_ES = { 'In person': 'Presencial', 'Online': 'Virtual' };
-const CAT_ES = {
-  'Art and Creativity': 'Arte y creatividad',
-  'Humanities and Personal Development': 'Humanidades y desarrollo personal',
-  'Technology': 'Tecnología', 'Physical Activities': 'Actividades corporales',
-  'Games and Play': 'Actividades lúdicas', 'Languages': 'Idiomas',
-  'New workshop (Aug 2026)': 'Taller nuevo (agosto 2026)'
-};
-const LEVEL_ES = {
-  Beginner: 'Inicial', 'Beginner 2': 'Inicial 2', Elementary: 'Elemental',
-  'Pre-Intermediate': 'Pre intermedio', 'Pre-Intermediate 2': 'Pre intermedio 2',
-  Intermediate: 'Intermedio', 'Intermediate/Advanced': 'Intermedio y avanzado',
-  Advanced: 'Avanzado', 'Level 1': 'Nivel 1', 'Level 2': 'Nivel 2', 'Level 3': 'Nivel 3',
-  'Beginner to experienced': 'Desde cero o con experiencia',
-  'No prior experience required': 'Sin experiencia previa'
-};
 const MONTH_ES = {
   January: 'enero', February: 'febrero', March: 'marzo', April: 'abril', May: 'mayo',
   June: 'junio', July: 'julio', August: 'agosto', September: 'septiembre',
@@ -259,8 +219,6 @@ const MONTH_ES = {
   Jan: 'ene', Feb: 'feb', Mar: 'mar', Apr: 'abr', Jun: 'jun', Jul: 'jul',
   Aug: 'ago', Sep: 'sep', Oct: 'oct', Nov: 'nov', Dec: 'dic'
 };
-
-const map = (m, v, lang) => (!v ? '' : lang === 'en' ? v : (m[v] || v));
 
 function periodEs(v) {
   if (!v) return '';
@@ -275,31 +233,34 @@ function periodEs(v) {
   return out;
 }
 
-function toCard(c, lang) {
-  const when = [map(DAY_ES, c.day, lang), c.time_display || c.time_24h].filter(Boolean).join(', ');
+function toCard(c) {
+  const day = normDay(c.dia || c.day || '');
+  const time = c.horario_display || c.horario_24h || c.time_display || c.time_24h || '';
+  const when = [day, time].filter(Boolean).join(', ');
+  const altDay = normDay(c.dia_alternativo || c.alt_day || '');
+  const altTime = c.horario_alternativo_24h || c.alt_time_24h || '';
+  const fmt = c.modalidad || c.format || '';
+  const typ = c.tipo || c.type || '';
   return {
     id: c.id,
-    title: (lang === 'es' && c.course_name_es) ? c.course_name_es : c.course_name,
-    when: when || (lang === 'en' ? 'Dates to be confirmed' : 'Fechas a confirmar'),
-    altWhen: c.alt_day
-      ? [map(DAY_ES, c.alt_day, lang), c.alt_time_24h].filter(Boolean).join(', ')
-      : '',
-    format: map(FMT_ES, c.format, lang),
-    online: /online/i.test(c.format || ''),
-    isWorkshop: /workshop/i.test(c.type || ''),
-    category: map(CAT_ES, c.category, lang),
-    teacher: c.teacher || '',
-    level: map(LEVEL_ES, c.level, lang),
-    period: lang === 'es' ? periodEs(c.period) : (c.period || ''),
-    venue: c.venue || '',
-    capacity: c.capacity || ''
+    title: c.nombre || c.course_name_es || c.course_name || '',
+    when: when || 'Fechas a confirmar',
+    altWhen: altDay ? [altDay, altTime].filter(Boolean).join(', ') : '',
+    format: fmt,
+    online: /virtual/i.test(fmt) || /online/i.test(fmt),
+    isWorkshop: /taller/i.test(typ) || /workshop/i.test(typ),
+    category: c.area || c.categoria || c.category || '',
+    teacher: c.docente || c.profesor || c.teacher || '',
+    level: c.nivel || c.level || '',
+    period: periodEs(c.periodo || c.period || ''),
+    venue: c.lugar || c.venue || '',
+    capacity: c.cupo || c.capacity || ''
   };
 }
 
 function faqToText(rows) {
   return rows.map((f) =>
-    `[${f.id} ${f.category}] P: ${f.question_es} R: ${f.answer_es}` +
-    (f.question_en ? `\n   Q: ${f.question_en} A: ${f.answer_en}` : '')
+    `[${f.id} ${f.categoria || f.category || ''}] P: ${f.pregunta || f.question_es || f.question || ''} R: ${f.respuesta || f.answer_es || f.answer || ''}`
   ).join('\n');
 }
 
@@ -312,7 +273,7 @@ REGLAS QUE NO PODÉS ROMPER:
 3. NUNCA digas un precio, ni un monto, ni un rango, ni un "aproximadamente", ni compares con otra institución. El arancel NO está publicado en ninguna fuente. Si preguntan cuánto cuesta: explicá que se paga por mes del 1 al 15 con arancel bonificado dentro de esa fecha, que el valor se ajusta durante el año, y que lo dan en el momento por teléfono o WhatsApp al ${PHONE}.
 4. Nunca inventes un taller, un docente, un día, un horario ni un cupo. Si no está en los datos, no existe.
 5. No pidas datos personales: ni nombre, ni mail, ni teléfono, ni edad.
-6. Respondé en el idioma en que te escriben. Si te escriben en español, usá el voseo de Córdoba (podés, tenés, fijate, escribinos).
+6. Respondé SIEMPRE en español, usando el voseo de Córdoba (podés, tenés, fijate, escribinos).
 7. Sé breve: dos o tres oraciones, o una lista corta. Nada de textos largos.
 8. Cuando hables de un taller, nombralo tal como figura en los datos.
 9. Pasá el contacto cuando quieran inscribirse, pregunten por plata, pregunten algo que no está en los datos, o parezcan trabados.
@@ -335,13 +296,6 @@ Reglas de las tarjetas:
 
 Sos un asistente automático, no una persona, y el visitante ya lo sabe porque se lo dijimos al abrir el chat.`;
 
-/* The GitHub Pages copy of the site has no serverless function of its own, so
-   it calls this one cross-origin. Localhost is allowed too, so the site can be
-   run and tested locally with a working assistant rather than a dead one.
-   An allowlist rather than a wildcard, and worth being clear about what that
-   does and does not buy: CORS only constrains browsers, so it is no defence
-   against a script posting directly. The rate limiter is the actual
-   protection. The allowlist keeps casual embedding on other sites out. */
 const ALLOWED_ORIGINS = [
   'https://andresapitt.github.io'
 ];
@@ -362,34 +316,16 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   }
 
-  /* Answer the preflight before the rate limiter, so a browser checking
-     whether it may POST does not consume the visitor's allowance. */
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Max-Age', '86400');
     return res.status(204).end();
   }
 
-  /* Applies to the selftest too. It reads two sheets and lists models, so it
-     is not a free endpoint either. */
   const gate = rateLimit(req);
   if (gate.limited) {
-    /* Answer in the visitor's language. Reading the body here is best effort:
-       if it is malformed we fall back to Spanish rather than failing. */
-    let lim = 'es';
-    try {
-      const b = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      if (b && b.lang === 'en') lim = 'en';
-    } catch (e) { /* keep Spanish */ }
-
     const MSG = {
-      es: {
-        global: `Estamos recibiendo muchas consultas en este momento. Probá de nuevo en un minuto, o escribinos por WhatsApp al ${PHONE} y te respondemos.`,
-        user: `Hiciste varias preguntas seguidas. Esperá un momento y volvé a intentar, o escribinos por WhatsApp al ${PHONE} y te atiende una persona.`
-      },
-      en: {
-        global: `We are getting a lot of questions right now. Try again in a minute, or message us on WhatsApp at ${PHONE} and we will reply.`,
-        user: `You have asked several questions in a row. Wait a moment and try again, or message us on WhatsApp at ${PHONE} and a person will help you.`
-      }
+      global: `Estamos recibiendo muchas consultas en este momento. Probá de nuevo en un minuto, o escribinos por WhatsApp al ${PHONE} y te respondemos.`,
+      user: `Hiciste varias preguntas seguidas. Esperá un momento y volvé a intentar, o escribinos por WhatsApp al ${PHONE} y te atiende una persona.`
     };
 
     res.setHeader('Retry-After', String(gate.retryAfter));
@@ -397,13 +333,11 @@ export default async function handler(req, res) {
       error: 'rate_limited',
       scope: gate.scope,
       retryAfter: gate.retryAfter,
-      reply: MSG[lim][gate.scope === 'global' ? 'global' : 'user'],
+      reply: MSG[gate.scope === 'global' ? 'global' : 'user'],
       handoff: true
     });
   }
 
-  /* Deployment check: confirms the key is present and lists the models it can
-     actually reach. Never returns the key itself. */
   if (req.method === 'GET' && req.query && req.query.selftest === '1') {
     const hasKey = Boolean(process.env.GEMINI_API_KEY);
     let models = null, sheets = null, error = null;
@@ -412,17 +346,14 @@ export default async function handler(req, res) {
         readSheet(COURSES_SHEET),
         FAQ_SHEET ? readSheet(FAQ_SHEET) : Promise.resolve([])
       ]);
-      /* The column names matter as much as the row count. A sheet can return
-         the right number of rows and still be unusable if the header was not
-         detected, which is exactly what happened to the FAQ sheet once. */
       sheets = {
         courses: courses.length,
         courseColumns: courses.length ? Object.keys(courses[0]) : [],
         faq: faq.length,
         faqColumns: faq.length ? Object.keys(faq[0]) : [],
         faqSheetConfigured: Boolean(FAQ_SHEET),
-        faqUsable: faq.length > 0 && Boolean(faq[0].question_es && faq[0].answer_es),
-        faqSample: faq.length ? String(faq[0].question_es || '(no question_es column)').slice(0, 80) : null,
+        faqUsable: faq.length > 0 && Boolean((faq[0].pregunta || faq[0].question_es) && (faq[0].respuesta || faq[0].answer_es)),
+        faqSample: faq.length ? String(faq[0].pregunta || faq[0].question_es || '(sin columna de pregunta)').slice(0, 80) : null,
         holidaysAffectingClasses: (await readHolidays(courses)).length
       };
     } catch (e) { error = String(e.message || e); }
@@ -464,10 +395,8 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const message = String(body.message || '').slice(0, 800).trim();
     const history = Array.isArray(body.history) ? body.history.slice(-6) : [];
-    const lang = body.lang === 'en' ? 'en' : 'es';
     if (!message) return res.status(400).json({ error: 'empty_message' });
 
-    /* Live read of both sources. No cache, no stored copy. */
     const [courses, faq] = await Promise.all([
       readSheet(COURSES_SHEET),
       FAQ_SHEET ? readSheet(FAQ_SHEET) : Promise.resolve([])
@@ -495,7 +424,7 @@ export default async function handler(req, res) {
     });
     contents.push({
       role: 'user',
-      parts: [{ text: `DATOS ACTUALES:\n${context}\n\n=== PREGUNTA DEL VISITANTE (respondé en ${lang === 'en' ? 'inglés' : 'español'}) ===\n${message}` }]
+      parts: [{ text: `DATOS ACTUALES:\n${context}\n\n=== PREGUNTA DEL VISITANTE (respondé en español) ===\n${message}` }]
     });
 
     const upstream = await fetch(
@@ -519,8 +448,6 @@ export default async function handler(req, res) {
 
     if (!upstream.ok) {
       const detail = await upstream.text();
-      /* The model name is the most likely thing to be wrong on a fresh
-         deployment, so the message says how to check it. */
       return res.status(502).json({
         error: 'model_error',
         status: upstream.status,
@@ -536,10 +463,6 @@ export default async function handler(req, res) {
       ? cand.content.parts.map((p) => p.text || '').join('').trim()
       : '';
 
-    /* The model picks which courses to show, by id. Everything a card then
-       displays is read out of the sheet row, so a card cannot show a time or
-       a teacher the model made up. An id that is not in the sheet is dropped
-       silently rather than rendered as an empty card. */
     let cards = [];
     const tag = reply.match(/\[\[\s*CURSOS?\s*:\s*([^\]]*)\]\]/i);
     if (tag) {
@@ -550,7 +473,7 @@ export default async function handler(req, res) {
         .map((id) => courses.find((c) => String(c.id || '').toUpperCase() === id))
         .filter(Boolean)
         .slice(0, 8)
-        .map((c) => toCard(c, lang));
+        .map((c) => toCard(c));
       reply = reply.replace(tag[0], '').replace(/\n{3,}/g, '\n\n').trim();
     }
 
@@ -561,23 +484,15 @@ export default async function handler(req, res) {
       });
     }
 
-    /* Last line of defence on the rule that matters most. If a fee amount ever
-       reaches this point, the answer is replaced rather than shown. The model
-       is told not to quote a price; this is what catches it when it does.
-       Tested against 24 cases in pipeline/07-chatbot-build-notes.md. */
     if (MONEY.test(reply)) {
       return res.status(200).json({
-        reply: lang === 'en'
-          ? `The fee is paid monthly, between the 1st and the 15th, at a discounted rate within those dates. The amount is adjusted during the year, so we give it to you directly: WhatsApp or call ${PHONE}.`
-          : `El arancel se paga por mes, del 1 al 15, con un valor bonificado dentro de esa fecha. El importe se ajusta durante el año, así que te lo damos en el momento: WhatsApp o teléfono ${PHONE}.`,
+        reply: `El arancel se paga por mes, del 1 al 15, con un valor bonificado dentro de esa fecha. El importe se ajusta durante el año, así que te lo damos en el momento: WhatsApp o teléfono ${PHONE}.`,
         handoff: true, guardrail: 'fee_amount_blocked'
       });
     }
 
-    /* If the model returned nothing but the id line, give the cards a caption
-       rather than showing them under an empty bubble. */
     if (!reply && cards.length) {
-      reply = lang === 'en' ? 'Here is what I found:' : 'Esto es lo que encontré:';
+      reply = 'Esto es lo que encontré:';
     }
 
     return res.status(200).json({
