@@ -3,18 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>aulauniversitaria | Actividades para mayores de 50 años en Córdoba</title>
-<meta name="description" content="Talleres de idiomas, arte, tecnología, filosofía y más para personas de más de 50 años. Campus de la Universidad Blas Pascal, Argüello, Córdoba. La primera clase es gratis.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%23C41230'>a</text></svg>">
+<title>Asociación Civil Promover | aulauniversitaria</title>
+<meta name="description" content="Portal oficial de la Asociación Civil Promover y su programa aulauniversitaria junto a la Universidad Blas Pascal. Promoción humana, desarrollo social y educación para mayores de 50 años en Córdoba.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%231B6A45'>P</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
-<link rel="stylesheet" href="assets/chat.css">
 <script>
-/* Applies a previously chosen dark theme before the first paint, so the page
-   never flashes white and then darkens. Light is the default: the operating
-   system preference is deliberately not consulted. */
 (function(){try{
   if(localStorage.getItem('au-theme')==='dark'){
     document.documentElement.setAttribute('data-theme','dark');
@@ -24,13 +20,17 @@
 </head>
 <body>
 
-<a class="skip" href="#buscador" data-i18n="skip">Ir al buscador de talleres</a>
+<a class="skip" href="#selector">Ir al selector de espacios</a>
 
 <header class="site-header">
   <div class="wrap header-inner">
-    <a class="brand" href="#inicio" aria-label="aulauniversitaria, inicio">
-      <img src="assets/logo.jpg" alt="aulauniversitaria" class="brand-mark" width="716" height="98">
-      <span class="brand-tag">cosa de grandes</span>
+    <a class="brand" href="index.html" aria-label="Asociación Civil Promover, inicio">
+      <div style="display:flex; align-items:center; gap:.6rem;">
+        <span style="font-weight:800; font-size:1.35rem; color:#1B6A45; letter-spacing:-.02em;">promover</span>
+        <span style="color:var(--line); font-size:1.2rem;">|</span>
+        <span style="font-weight:700; font-size:.95rem; color:var(--red);">aulauniversitaria</span>
+      </div>
+      <span class="brand-tag" style="color:var(--ink-soft); font-weight:600;">portal institucional</span>
     </a>
 
     <button type="button" id="nav-toggle" class="nav-toggle" aria-expanded="false" aria-controls="site-nav" hidden>
@@ -39,17 +39,18 @@
     </button>
 
     <nav class="site-nav" id="site-nav" aria-label="Principal">
-      <a href="#buscador" data-i18n="nav.courses">Talleres</a>
-      <a href="#semana" data-i18n="nav.week">La semana</a>
-      <a href="#profesores" data-i18n="nav.teachers" id="nav-teachers" hidden>Profesores</a>
-      <a href="#comollega" data-i18n="nav.how">Cómo empezar</a>
-      <a href="#contacto" data-i18n="nav.contact">Contacto</a>
+      <a href="#selector">Elegir espacio</a>
+      <a href="aulauniversitaria.html" style="color:var(--red);">Talleres 2026</a>
+      <a href="#promover">La Asociación</a>
+      <a href="#pilares">Pilares</a>
+      <a href="#proyectos">Proyectos</a>
+      <a href="#contacto">Contacto</a>
     </nav>
 
     <div class="header-tools">
       <button type="button" id="text-size" class="tool" aria-pressed="false">
         <span aria-hidden="true">A+</span>
-        <span class="sr-only" data-i18n="tool.bigger">Agrandar el texto</span>
+        <span class="sr-only">Agrandar el texto</span>
       </button>
       <button type="button" id="theme" class="tool" aria-pressed="false">
         <span class="theme-icon" aria-hidden="true">☾</span>
@@ -57,161 +58,263 @@
       </button>
       <a class="tool tool-ig" href="https://www.instagram.com/aulauniversitaria_/" target="_blank" rel="noopener" id="ig-header">
         <svg class="ig-glyph" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none"/></svg>
-        <span class="sr-only" data-i18n="ig.label">Instagram de aulauniversitaria</span>
+        <span class="sr-only">Instagram de aulauniversitaria</span>
       </a>
     </div>
   </div>
 </header>
 
-<main id="inicio">
+<main>
 
-  <!-- ===== HERO ===== -->
-  <section class="hero">
-    <div class="wrap hero-inner">
-      <p class="kicker" data-i18n="hero.kicker">Asociación Civil Promover + Universidad Blas Pascal</p>
-      <h1 data-i18n="hero.title">Elegí un taller. La primera clase es gratis.</h1>
-      <p class="lead" data-i18n="hero.lead">Idiomas, arte, filosofía, tecnología, bridge y golf. Cuarenta y siete propuestas en el campus de la Universidad Blas Pascal, en Argüello, y también por videollamada. Podés probar cualquier taller sin pagar nada antes de decidir.</p>
-      <div class="hero-cta">
-        <a class="btn btn-primary" href="#comollega" data-i18n="hero.cta1">Quiero probar una clase</a>
-        <a class="btn btn-ghost" href="#buscador" data-i18n="hero.cta2">Ver los talleres</a>
+  <!-- ===== PORTAL SELECTOR HERO ===== -->
+  <section id="selector" class="portal-hero">
+    <div class="wrap portal-hero-inner">
+      <div class="portal-kicker">
+        <span style="color:#1B6A45;">Asociación Civil Promover</span>
+        <span>•</span>
+        <span>Personería Jurídica Res. Nº 031/A/01</span>
       </div>
-      <ul class="hero-facts">
-        <li><strong id="fact-courses">&ndash;</strong> <span data-i18n="hero.fact1">propuestas 2026</span></li>
-        <li><strong id="fact-teachers">&ndash;</strong> <span data-i18n="hero.fact2">profesores</span></li>
-        <li><strong data-i18n="hero.fact3v">2 de marzo</strong> <span data-i18n="hero.fact3">empiezan las clases</span></li>
-        <li><strong data-i18n="hero.fact4v">Todo el año</strong> <span data-i18n="hero.fact4">inscripción abierta</span></li>
-      </ul>
+      <h1 class="portal-title">Dos espacios para aprender, crecer y transformar la comunidad.</h1>
+      <p class="portal-lead">Desde el año 2000 impulsamos las potencialidades humanas a través de proyectos comunitarios, salud y educación permanente en Córdoba. Seleccioná a qué área querés ingresar:</p>
+
+      <div class="portal-grid">
+
+        <!-- Card 1: aulauniversitaria -->
+        <article class="portal-card card-au">
+          <div class="portal-badge badge-au">Cosa de grandes • Programa 2026</div>
+          <div class="portal-logo-wrap">
+            <img src="assets/logo.jpg" alt="aulauniversitaria" class="portal-logo-au" width="716" height="98">
+          </div>
+          <h2>aulauniversitaria</h2>
+          <p class="portal-desc">Programa de actividades y formación continua para personas de más de 50 años junto a la Universidad Blas Pascal. Talleres de idiomas, arte, filosofía, tecnología, salud mental y actividades recreativas.</p>
+
+          <ul class="portal-highlights">
+            <li class="portal-pill">✓ 47 propuestas en 2026</li>
+            <li class="portal-pill">✓ 28 docentes especialistas</li>
+            <li class="portal-pill">✓ Campus UBP y Virtual</li>
+            <li class="portal-pill">✓ La 1ª clase es gratis</li>
+            <li class="portal-pill">✓ Inscripción todo el año</li>
+          </ul>
+
+          <div class="portal-cta">
+            <a href="aulauniversitaria.html" class="portal-btn btn-au">
+              Ingresar a aulauniversitaria
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </article>
+
+        <!-- Card 2: Asociación Civil Promover -->
+        <article class="portal-card card-promover">
+          <div class="portal-badge badge-promover">ONG Matriz • Argüello, Córdoba</div>
+          <div class="portal-logo-wrap">
+            <img src="assets/logo-promover.svg" alt="Asociación Civil Promover" class="portal-logo-promover" width="420" height="110">
+          </div>
+          <h2>Asociación Civil Promover</h2>
+          <p class="portal-desc">Organización sin fines de lucro del Sector Social. Desarrollamos programas de promoción humana, fortalecimiento de redes barriales, promotores de salud y proyectos autogestionarios para la calidad de vida.</p>
+
+          <ul class="portal-highlights">
+            <li class="portal-pill">✓ Fundada en junio de 2000</li>
+            <li class="portal-pill">✓ Res. Nº 031/A/01</li>
+            <li class="portal-pill">✓ 4 Pilares comunitarios</li>
+            <li class="portal-pill">✓ Trabajo social y en red</li>
+            <li class="portal-pill">✓ Salud y desarrollo humano</li>
+          </ul>
+
+          <div class="portal-cta">
+            <a href="#promover" class="portal-btn btn-promover">
+              Conocer la Asociación Civil
+              <span aria-hidden="true">↓</span>
+            </a>
+          </div>
+        </article>
+
+      </div>
     </div>
   </section>
 
-  <!-- ===== COURSE FINDER ===== -->
-  <section id="buscador" class="section">
+  <!-- ===== SECCIÓN PROMOVER INSTITUCIONAL ===== -->
+  <section id="promover" class="inst-section">
     <div class="wrap">
-      <h2 data-i18n="find.title">Buscá tu taller</h2>
-      <p class="section-lead" data-i18n="find.lead">Escribí lo que te interesa o filtrá por día. Los datos se leen en vivo de la planilla de la coordinación cada vez que abrís esta página.</p>
-
-      <div class="filters" role="search">
-        <div class="field field-grow">
-          <label for="q" data-i18n="find.search">Buscar por nombre, tema o profesor</label>
-          <input type="search" id="q" autocomplete="off" placeholder="italiano, pintura, bridge...">
-        </div>
-        <div class="field">
-          <label for="f-day" data-i18n="find.day">Día</label>
-          <select id="f-day"><option value="" data-i18n="find.any">Cualquiera</option></select>
-        </div>
-        <div class="field">
-          <label for="f-cat" data-i18n="find.cat">Área</label>
-          <select id="f-cat"><option value="" data-i18n="find.any">Cualquiera</option></select>
-        </div>
-        <div class="field">
-          <label for="f-fmt" data-i18n="find.fmt">Modalidad</label>
-          <select id="f-fmt"><option value="" data-i18n="find.any">Cualquiera</option></select>
-        </div>
-        <button type="button" id="clear" class="btn btn-ghost btn-sm" data-i18n="find.clear">Limpiar</button>
+      <div class="inst-header">
+        <span class="inst-kicker">Institucional • Trayectoria comunitaria</span>
+        <h2 class="inst-title">¿Quiénes somos y qué hacemos en Promover?</h2>
+        <p class="section-lead">La <strong>Asociación Civil Promover</strong> es una entidad sin fines de lucro constituida en <strong>junio del año 2000</strong>, con Personería Jurídica aprobada por la Inspección de Personas Jurídicas bajo <strong>Resolución Nº 031/A/01</strong>.</p>
       </div>
 
-      <!-- Public holidays that fall on a teaching day. Read from a national
-           holidays API and cross-checked against the live course sheet.
-           Hidden unless there is something true and useful to say. -->
-      <aside id="holidays" class="holidays" hidden></aside>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(20rem, 1fr)); gap:2rem; margin-bottom:3rem;">
+        <div style="background:var(--paper-alt); border:1px solid var(--line); border-left:6px solid #1B6A45; border-radius:18px; padding:1.8rem; box-shadow:var(--shadow-sm);">
+          <h3 style="color:#1B6A45; margin-top:0;">Nuestra Identidad</h3>
+          <p>Reunimos a profesionales de diversas disciplinas (trabajo social, psicología, ciencias de la educación, medicina y pedagogía) con el compromiso de trabajar por la <strong>Promoción Humana y el Desarrollo Social</strong>.</p>
+          <p style="margin-bottom:0;">Nuestro accionar se circunscribe prioritariamente a la zona suburbana de <strong>Argüello</strong>, situada al noroeste de la ciudad de Córdoba, Argentina, formando parte activa del Sector Social.</p>
+        </div>
 
-      <p id="count" class="count" role="status" aria-live="polite"></p>
-
-      <div id="results" class="cards"></div>
-
-      <div id="state" class="state" hidden></div>
-    </div>
-  </section>
-
-  <!-- ===== WEEK VIEW ===== -->
-  <section id="semana" class="section section-alt">
-    <div class="wrap">
-      <h2 data-i18n="week.title">La semana de un vistazo</h2>
-      <p class="section-lead" data-i18n="week.lead">Todo lo que pasa cada día, ordenado por hora. Útil si ya sabés qué tarde tenés libre.</p>
-      <div id="week" class="week"></div>
-    </div>
-  </section>
-
-  <!-- ===== TEACHERS =====
-       Hidden until the teacher sheet is reachable, so a missing or private
-       sheet leaves no empty heading on the page. -->
-  <section id="profesores" class="section" hidden>
-    <div class="wrap">
-      <h2 data-i18n="teach.title">Quiénes dan las clases</h2>
-      <p class="section-lead" data-i18n="teach.lead">Cada taller lo dicta alguien con una trayectoria propia. Estos son sus nombres y su recorrido.</p>
-      <div id="teachers" class="teachers"></div>
-    </div>
-  </section>
-
-  <!-- ===== HOW TO START ===== -->
-  <section id="comollega" class="section">
-    <div class="wrap">
-      <h2 data-i18n="how.title">Cómo empezar, en tres pasos</h2>
-      <ol class="steps">
-        <li>
-          <span class="step-n" aria-hidden="true">1</span>
-          <h3 data-i18n="how.s1t">Elegí un taller que te guste</h3>
-          <p data-i18n="how.s1b">Usá el buscador de arriba. Fijate el día y la hora que te queden cómodos.</p>
-        </li>
-        <li>
-          <span class="step-n" aria-hidden="true">2</span>
-          <h3 data-i18n="how.s2t">Llamá o escribí por WhatsApp</h3>
-          <p data-i18n="how.s2b">Decinos cuál te interesa y te reservamos un lugar en la próxima clase. Te atiende una persona, no un contestador.</p>
-          <p class="step-actions">
-            <a class="btn btn-primary" href="https://wa.me/5493513261002" rel="noopener" data-i18n="how.wa">Escribir por WhatsApp</a>
-            <a class="btn btn-ghost" href="tel:+5493513261002">351 3 261002</a>
+        <div style="background:#EEF7F2; border:1px solid #C4E4D3; border-radius:18px; padding:1.8rem; box-shadow:var(--shadow-sm);">
+          <h3 style="color:#125234; margin-top:0;">Nuestra Misión</h3>
+          <p style="font-size:1.05rem; line-height:1.6; color:#0E442B; margin-bottom:0;">
+            <em>"Promover el desarrollo de las potencialidades humanas y la mejora de la calidad de vida de personas y/o grupos en situación de riesgo y vulnerabilidad, mediante proyectos de capacitación, prevención, rehabilitación, formación de promotores de salud y medio ambiente saludable, y microemprendimientos."</em>
           </p>
-        </li>
-        <li>
-          <span class="step-n" aria-hidden="true">3</span>
-          <h3 data-i18n="how.s3t">Vení a probar. Esa clase no se paga.</h3>
-          <p data-i18n="how.s3b">Te sentás, mirás cómo trabaja el grupo y después decidís. Si te gusta, te inscribís. Si no, probás otro taller.</p>
-        </li>
-      </ol>
+        </div>
+      </div>
 
-      <div class="notice">
-        <h3 data-i18n="how.feeT">¿Cuánto cuesta?</h3>
-        <p data-i18n="how.feeB">El arancel se paga por mes, del 1 al 15, con un valor bonificado dentro de esa fecha. No publicamos el importe en esta página porque cambia durante el año: preguntanos por teléfono o por WhatsApp y te lo decimos en el momento, sin compromiso.</p>
+    </div>
+  </section>
+
+  <!-- ===== 4 PILARES BÁSICOS ===== -->
+  <section id="pilares" class="inst-section section-alt">
+    <div class="wrap">
+      <div class="inst-header">
+        <span class="inst-kicker">Marco de acción</span>
+        <h2 class="inst-title">Los cuatro pilares fundacionales de la entidad</h2>
+        <p class="section-lead">Cada una de las iniciativas impulsadas por Promover se construye sobre estos cuatro principios rectores:</p>
+      </div>
+
+      <div class="pillars-grid">
+        <div class="pillar-card">
+          <div class="pillar-icon">01</div>
+          <h3>Las Potencialidades</h3>
+          <p>Las capacidades y saberes que los individuos, grupos y comunidades ya tienen. Solo esperan la oportunidad propicia para desarrollarse y, desde allí, poner en movimiento procesos reales de cambio y superación.</p>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-icon">02</div>
+          <h3>La Participación</h3>
+          <p>La intervención activa de los beneficiarios en la elaboración, ejecución y evaluación de los programas sociales es condición indispensable para que sean efectivos y se adecuen auténticamente a su realidad.</p>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-icon">03</div>
+          <h3>La Sustentabilidad</h3>
+          <p>Buscamos la permanencia de las acciones a través de procesos autogestionarios que empoderen a la comunidad y garanticen la continuidad más allá de asistencias coyunturales.</p>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-icon">04</div>
+          <h3>La Articulación</h3>
+          <p>La unión con quienes comparten un mismo objetivo. Una forma de romper el aislamiento para generar, a través de mecanismos democráticos, propuestas locales de promoción humana y desarrollo social.</p>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ===== PRACTICAL =====
-       Read from the info sheet. Hidden until that sheet is reachable, so a
-       missing or private sheet leaves no empty heading on the page. -->
-  <section id="info" class="section section-alt" hidden>
+  <!-- ===== PROGRAMAS Y PROYECTOS ===== -->
+  <section id="proyectos" class="inst-section">
     <div class="wrap">
-      <h2 data-i18n="info.title">Lo que conviene saber</h2>
-      <div id="info-grid" class="info-grid"></div>
+      <div class="inst-header">
+        <span class="inst-kicker">Acción territorial y académica</span>
+        <h2 class="inst-title">Programas y proyectos desarrollados</h2>
+        <p class="section-lead">A lo largo de más de dos décadas, Promover ha articulado proyectos educativos, de salud comunitaria y apoyo social:</p>
+      </div>
+
+      <div class="projects-grid">
+        <!-- Proyecto destacado: aulauniversitaria -->
+        <article class="project-card flagship">
+          <span class="portal-badge badge-au" style="margin-bottom:.6rem;">Educación Permanente</span>
+          <h3>aulauniversitaria — Actividades para mayores de 50</h3>
+          <p>Programa organizado conjuntamente por la <strong>Secretaría de Extensión de la Universidad Blas Pascal</strong> y la <strong>Asociación Civil Promover</strong>. Brinda a los adultos mayores la oportunidad de aprender, fortalecer su salud física y mental, socializar y actualizarse a través de más de 45 talleres anuales en el Campus de Argüello y en entornos virtuales.</p>
+          <div style="margin-top:auto; padding-top:1rem;">
+            <a href="aulauniversitaria.html" class="btn btn-primary" style="width:100%;">Ver talleres y propuesta 2026 →</a>
+          </div>
+        </article>
+
+        <article class="project-card">
+          <span class="portal-badge badge-promover" style="margin-bottom:.6rem;">Salud Comunitaria</span>
+          <h3>Salud Reproductiva en Costa Canal</h3>
+          <p>Proyecto territorial enfocado en la prevención, educación y promoción de la salud en la comunidad de Costa Canal (Bº Villa Rivera Indarte, Argüello), acompañando a familias en situación de vulnerabilidad.</p>
+        </article>
+
+        <article class="project-card">
+          <span class="portal-badge badge-promover" style="margin-bottom:.6rem;">Infancia y Familia</span>
+          <h3>Apoyo Escolar y Evaluación Psicopedagógica</h3>
+          <p>Acompañamiento a niños y niñas en edad escolar, facilitando espacios de estimulación cognitiva, apoyo pedagógico y orientación a padres y docentes locales.</p>
+        </article>
+
+        <article class="project-card">
+          <span class="portal-badge badge-promover" style="margin-bottom:.6rem;">Redes Sociales</span>
+          <h3>Promotores Sociales y Ambientales</h3>
+          <p>Capacitación y fortalecimiento de referentes barriales como agentes multiplicadores de hábitos saludables, cuidado del entorno y articulación comunitaria.</p>
+        </article>
+      </div>
+
+      <!-- Estrategias de intervención -->
+      <div style="margin-top:3.5rem; background:var(--paper-alt); border:1px solid var(--line); border-radius:18px; padding:2rem; box-shadow:var(--shadow-sm);">
+        <h3 style="margin-top:0;">Estrategias de Intervención Comunitaria</h3>
+        <ul style="margin:0; padding-left:1.2rem; display:grid; grid-template-columns:repeat(auto-fit, minmax(18rem, 1fr)); gap:1rem; font-size:.98rem; color:var(--ink-soft);">
+          <li>Apoyo y fortalecimiento permanente de los promotores sociales locales.</li>
+          <li>Articulación de recursos estatales, privados y vecinales hacia la instalación de una Red Local sustentable.</li>
+          <li>Multiplicación de experiencias exitosas ampliando la cobertura social.</li>
+          <li>Generación de condiciones de equidad para acceder a una mejor calidad de vida.</li>
+          <li>Desarrollo integral de grupos vulnerables mediante procesos autogestionarios.</li>
+          <li>Construcción de redes de soporte social entre organizaciones territoriales.</li>
+        </ul>
+      </div>
+
+      <!-- Equipo -->
+      <div style="margin-top:3rem;">
+        <h3>Miembros y colaboraciones históricas</h3>
+        <p class="section-lead" style="margin-bottom:1rem;">Profesionales que han integrado la Comisión Directiva, equipos técnicos y proyectos de Promover:</p>
+        <ul class="team-list">
+          <li class="team-chip">Teresa Haddad</li>
+          <li class="team-chip">Magdalena Díaz Schmid</li>
+          <li class="team-chip">Cecilia Buteler</li>
+          <li class="team-chip">Inés Achával Becú</li>
+          <li class="team-chip">Cristina Pozzi</li>
+          <li class="team-chip">Nathalia de Brito</li>
+          <li class="team-chip">Luisa García</li>
+          <li class="team-chip">Fernanda Laveaga</li>
+          <li class="team-chip">Nilda C. Brizuela</li>
+          <li class="team-chip">Alicia Brizuela</li>
+          <li class="team-chip">Ana Outumuro</li>
+        </ul>
+      </div>
+
     </div>
   </section>
 
-  <!-- ===== CONTACT ===== -->
-  <section id="contacto" class="section">
+  <!-- ===== CONTACTO INSTITUCIONAL ===== -->
+  <section id="contacto" class="inst-section section-alt">
     <div class="wrap">
-      <h2 data-i18n="contact.title">Dónde estamos y cómo escribirnos</h2>
+      <div class="inst-header">
+        <span class="inst-kicker">Contacto institucional</span>
+        <h2 class="inst-title">Escribinos o contactate con Promover</h2>
+        <p class="section-lead">Atendemos consultas tanto sobre los programas comunitarios de la ONG como sobre las inscripciones a aulauniversitaria.</p>
+      </div>
+
       <div class="contact-grid">
         <div>
-          <h3 data-i18n="contact.h1">Hablá con una persona</h3>
-          <p class="big-contact">
-            <a href="https://wa.me/5493513261002" rel="noopener">WhatsApp 351 3 261002</a>
-            <a href="tel:+5493513261002" data-i18n="contact.p1">Teléfono 351 3 261002</a>
-            <a href="tel:+5493543536010" data-i18n="contact.p2">Teléfono 3543 536010</a>
+          <h3>Canales de atención directa</h3>
+          <div class="big-contact">
+            <a href="https://wa.me/5493513261002" target="_blank" rel="noopener">
+              WhatsApp: 351 3 261002
+            </a>
+            <a href="tel:+5493513261002">
+              Llamar al 351 3 261002
+            </a>
+          </div>
+          <p>
+            <strong>Teléfono alternativo:</strong> <a href="tel:+5493543536010">3543 536010</a><br>
+            <strong>Correo institucional:</strong> <a href="mailto:info@promover.org.ar">info@promover.org.ar</a>
           </p>
-          <p><a href="mailto:info@promover.org.ar">info@promover.org.ar</a></p>
-          <p><a href="mailto:aulauniversitaria@ubp.edu.ar">aulauniversitaria@ubp.edu.ar</a></p>
         </div>
+
         <div>
-          <h3 data-i18n="contact.h2">Dónde son las clases</h3>
+          <h3>Sedes y ubicación</h3>
           <p>
-            <span data-i18n="contact.campus">Campus de la Universidad Blas Pascal</span><br>
+            <strong>Actividades y Talleres (Campus UBP):</strong><br>
+            Universidad Blas Pascal<br>
             Avda. Donato Álvarez 380<br>
-            Argüello, Córdoba
+            Argüello, Córdoba, Argentina
           </p>
           <p>
-            <a class="social" href="https://www.instagram.com/aulauniversitaria_/" target="_blank" rel="noopener"><svg class="ig-glyph" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a>
-            <a class="social" href="https://www.facebook.com/aulauniversitaria" target="_blank" rel="noopener"><span>Facebook</span></a>
-            <a class="social" href="https://promover.org.ar" target="_blank" rel="noopener"><span>promover.org.ar</span></a>
+            <strong>Sede administrativa histórica:</strong><br>
+            Belgrano 49, 6º piso Of. 1<br>
+            Córdoba Capital, C.P. 5000
+          </p>
+          <p>
+            <a class="social" href="https://www.instagram.com/aulauniversitaria_/" target="_blank" rel="noopener">
+              <svg class="ig-glyph" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none"/></svg>
+              <span>Instagram @aulauniversitaria_</span>
+            </a>
           </p>
         </div>
       </div>
@@ -222,17 +325,76 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <p class="foot-brand">aulauniversitaria <span class="foot-tag">cosa de grandes</span></p>
-    <p data-i18n="foot.org">Programa de la Asociación Civil Promover y la Secretaría de Extensión y Relaciones Internacionales de la Universidad Blas Pascal.</p>
-    <p class="foot-social">
-      <a class="social" href="https://www.instagram.com/aulauniversitaria_/" target="_blank" rel="noopener"><svg class="ig-glyph" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1.3" fill="currentColor" stroke="none"/></svg><span>Instagram</span></a>
-      <a class="social" href="https://www.facebook.com/aulauniversitaria" target="_blank" rel="noopener"><span>Facebook</span></a>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1.5rem; margin-bottom:1.5rem;">
+      <div>
+        <p class="foot-brand">Asociación Civil Promover</p>
+        <p style="margin:0;">Personería Jurídica Nº 031/A/01 • Fundada en junio de 2000 en Córdoba, Argentina.</p>
+        <p style="margin:.3rem 0 0;">Programa aulauniversitaria en convenio con la Universidad Blas Pascal (UBP).</p>
+      </div>
+      <div>
+        <a href="aulauniversitaria.html" class="btn btn-sm btn-primary" style="color:#fff;">Ir al buscador de talleres aulauniversitaria →</a>
+      </div>
+    </div>
+
+    <div class="foot-social">
+      <a class="social" href="aulauniversitaria.html"><span>Talleres aulauniversitaria</span></a>
+      <a class="social" href="#selector"><span>Volver arriba</span></a>
+      <a class="social" href="https://www.instagram.com/aulauniversitaria_/" target="_blank" rel="noopener"><span>Instagram</span></a>
+      <a class="social" href="mailto:info@promover.org.ar"><span>info@promover.org.ar</span></a>
+    </div>
+
+    <p class="datasource">
+      © 2026 Asociación Civil Promover. Todos los derechos reservados.
     </p>
-    <p class="datasource" id="datasource"></p>
   </div>
 </footer>
 
-<script src="assets/app.js"></script>
-<script src="assets/chat.js"></script>
+<script>
+/* Theme and text size interactions for the portal page */
+(function() {
+  function applyTheme(dark) {
+    var root = document.documentElement;
+    if (dark) root.setAttribute('data-theme', 'dark');
+    else root.removeAttribute('data-theme');
+    try { localStorage.setItem('au-theme', dark ? 'dark' : 'light'); } catch (e) {}
+
+    var btn = document.querySelector('#theme');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', String(dark));
+    var icon = btn.querySelector('.theme-icon');
+    if (icon) icon.textContent = dark ? '☀' : '☾';
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var textSizeBtn = document.querySelector('#text-size');
+    if (textSizeBtn) {
+      textSizeBtn.addEventListener('click', function() {
+        var big = document.documentElement.getAttribute('data-textsize') === 'big';
+        document.documentElement.setAttribute('data-textsize', big ? '' : 'big');
+        this.setAttribute('aria-pressed', String(!big));
+      });
+    }
+
+    var themeBtn = document.querySelector('#theme');
+    if (themeBtn) {
+      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark');
+      themeBtn.addEventListener('click', function() {
+        applyTheme(document.documentElement.getAttribute('data-theme') !== 'dark');
+      });
+    }
+
+    /* Small-screen nav toggle */
+    var navBtn = document.querySelector('#nav-toggle');
+    var nav = document.querySelector('#site-nav');
+    if (navBtn && nav) {
+      navBtn.addEventListener('click', function() {
+        var open = navBtn.getAttribute('aria-expanded') === 'true';
+        navBtn.setAttribute('aria-expanded', String(!open));
+        nav.hidden = open;
+      });
+    }
+  });
+})();
+</script>
 </body>
 </html>
