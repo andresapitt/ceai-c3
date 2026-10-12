@@ -25,7 +25,8 @@
   /* The "Lo que conviene saber" cards. Same rule as the teacher sheet: while
      this id is empty, or if the sheet cannot be read, the section stays
      hidden rather than showing an empty heading. */
-  var INFO_SHEET_ID = '1x4Gf8OEYduZuh1lofeh_xxXeGVrlWZEie4FVHcDFnE4';
+  var INFO_SHEET_ID = '1ffSKC4ZXWJROMGndAQKhQsdPMoxADb6nTJHJt9udHd0';
+  var INFO_SHEET_GID = '2089951336';
 
   /* Argentine national public holidays. Free, no key, CORS open.
      Valentina's caveat, and the rule this whole feature is built on:
@@ -698,7 +699,7 @@
   /* ------------------------------------------------------------------ info */
   function loadInfo() {
     if (!INFO_SHEET_ID) return Promise.resolve();
-    return readSheet(INFO_SHEET_ID)
+    return readSheet(INFO_SHEET_ID, INFO_SHEET_GID)
       .then(function (rows) {
         INFO = rows
           .map(function (r) {
