@@ -20,7 +20,7 @@
      uploaded and shared as "anyone with the link can view". While it is
      empty, or if the sheet cannot be read, the teachers section and its nav
      link stay hidden rather than showing an empty heading. */
-  var TEACHERS_SHEET_ID = '1lVxincu--PI9M_WPri5c1gdf4A8f2ezIWWbrn4wexwA';
+  var TEACHERS_SHEET_ID = '18_fXKPZiVHBELcvxz3ImjhvMWSX_pTJH6t9MM76sO2g';
 
   /* The "Lo que conviene saber" cards. Same rule as the teacher sheet: while
      this id is empty, or if the sheet cannot be read, the section stays

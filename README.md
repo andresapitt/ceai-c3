@@ -20,7 +20,7 @@ Four Google Sheets and one public API are read at the moment they are used, neve
 | Source | Read by | Holds |
 |---|---|---|
 | `1vp0cTTwby2WLsPa0fIMnCovg0N0x_wq8ZHETNZnn07E` (gid `724889030`) | the page **and** the assistant | 47 courses |
-| `1lVxincu--PI9M_WPri5c1gdf4A8f2ezIWWbrn4wexwA` | the page | 28 teachers and their biographies |
+| `18_fXKPZiVHBELcvxz3ImjhvMWSX_pTJH6t9MM76sO2g` | the page | 28 teachers and their biographies |
 | `1ffSKC4ZXWJROMGndAQKhQsdPMoxADb6nTJHJt9udHd0` (gid `2089951336`) | the page | the practical information cards |
 | `1eVw7aijQVjqxdsMPz8JEM9mvLwZUdTRnp9VsNxLla8U` (or `FAQ_SHEET_ID` env) | the assistant | 35 curated answers |
 | `api.argentinadatos.com/v1/feriados/` | the page **and** the assistant | Argentine public holidays |
@@ -202,7 +202,7 @@ Verified with 45 assertions against an injected fake recogniser. **Real speech i
 A second sheet, read the same way as the first, configured in `assets/app.js`:
 
 ```js
-var TEACHERS_SHEET_ID = '1lVxincu--PI9M_WPri5c1gdf4A8f2ezIWWbrn4wexwA';
+var TEACHERS_SHEET_ID = '18_fXKPZiVHBELcvxz3ImjhvMWSX_pTJH6t9MM76sO2g';
 ```
 
 If that is emptied, or if the sheet cannot be read, the teachers section **and its nav link** stay hidden. Hiding the section but leaving the link was a real defect, caught by the blocked-sheet test: it pointed at nothing. A missing biography is left blank rather than filled in: six people in the 2026 programme have no bio in any source.
