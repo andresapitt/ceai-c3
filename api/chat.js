@@ -15,7 +15,7 @@ import { createHash, randomBytes } from 'node:crypto';
 
 const COURSES_SHEET = process.env.COURSES_SHEET_ID || '1vp0cTTwby2WLsPa0fIMnCovg0N0x_wq8ZHETNZnn07E';
 const COURSES_GID = process.env.COURSES_SHEET_GID || '724889030';
-const FAQ_SHEET = process.env.FAQ_SHEET_ID || '';
+const FAQ_SHEET = process.env.FAQ_SHEET_ID || '1eVw7aijQVjqxdsMPz8JEM9mvLwZUdTRnp9VsNxLla8U';
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const PHONE = '351 3 261002';
 const WA = 'https://wa.me/5493513261002';

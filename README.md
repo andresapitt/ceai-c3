@@ -22,7 +22,7 @@ Four Google Sheets and one public API are read at the moment they are used, neve
 | `1vp0cTTwby2WLsPa0fIMnCovg0N0x_wq8ZHETNZnn07E` (gid `724889030`) | the page **and** the assistant | 47 courses |
 | `1lVxincu--PI9M_WPri5c1gdf4A8f2ezIWWbrn4wexwA` | the page | 28 teachers and their biographies |
 | `1ffSKC4ZXWJROMGndAQKhQsdPMoxADb6nTJHJt9udHd0` (gid `2089951336`) | the page | the practical information cards |
-| `FAQ_SHEET_ID` (Vercel env) | the assistant | 35 curated answers |
+| `1eVw7aijQVjqxdsMPz8JEM9mvLwZUdTRnp9VsNxLla8U` (or `FAQ_SHEET_ID` env) | the assistant | 35 curated answers |
 | `api.argentinadatos.com/v1/feriados/` | the page **and** the assistant | Argentine public holidays |
 
 Each sheet is read through the gviz endpoint, with `cache: 'no-store'` and a changing query parameter so nothing can be served from a cache:
