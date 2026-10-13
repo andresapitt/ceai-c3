@@ -10,6 +10,12 @@
   --red-dark:#8A0B1E;
   --red-soft:#FFF0F3;
   --red-glow:rgba(184,20,42,.18);
+  --promover:#4070a4;
+  --promover-dark:#2A527C;
+  --promover-soft:#EFF4F9;
+  --promover-border:#C2D6E8;
+  --promover-text:#1A3857;
+  --promover-glow:rgba(64,112,164,.25);
   --ink:#161514;
   --ink-soft:#484542;
   --ink-muted:#736E68;
@@ -98,6 +104,8 @@ a:hover{ color:var(--red) }
   white-space:nowrap; transition:background .18s ease, color .18s ease
 }
 .site-nav a:hover{ background:var(--paper-alt); color:var(--red) }
+.site-nav a.nav-portal{ color:var(--promover) }
+.site-nav a.nav-portal:hover{ color:var(--promover-dark) }
 
 .header-tools{ display:flex; gap:.5rem }
 .tool{
@@ -405,6 +413,12 @@ a:hover{ color:var(--red) }
 :root[data-theme="dark"]{
   --ink:#F2F0EE; --ink-soft:#C2BFBC; --line:#353330; --line-hover:#4A4744;
   --paper:#141312; --paper-alt:#1C1A18; --red:#FF667C; --red-dark:#FF8999; --red-soft:#2E171B; --focus:#7FB4FF;
+  --promover:#6798CC;
+  --promover-dark:#95BFEC;
+  --promover-soft:#13263B;
+  --promover-border:#23476E;
+  --promover-text:#D5E5F7;
+  --promover-glow:rgba(103,152,204,.25);
   --shadow-sm:0 1px 3px rgba(0,0,0,.3);
   --shadow:0 4px 14px rgba(0,0,0,.4);
   --shadow-card:0 4px 18px -2px rgba(0,0,0,.45);
@@ -604,7 +618,7 @@ a:hover{ color:var(--red) }
 .portal-hero{
   position:relative;
   background:
-    radial-gradient(1000px 500px at 20% 10%, rgba(27,106,69,.09) 0%, transparent 65%),
+    radial-gradient(1000px 500px at 20% 10%, rgba(64,112,164,.10) 0%, transparent 65%),
     radial-gradient(1000px 500px at 80% 20%, rgba(184,20,42,.09) 0%, transparent 65%),
     linear-gradient(180deg, #F8F6F3 0%, #FFFFFF 100%);
   border-bottom:1px solid var(--line);
@@ -652,8 +666,8 @@ a:hover{ color:var(--red) }
 .portal-card.card-au{ border-top:6px solid var(--red) }
 .portal-card.card-au:hover{ border-color:#E8A8B2; border-top-color:var(--red) }
 
-.portal-card.card-promover{ border-top:6px solid #1B6A45 }
-.portal-card.card-promover:hover{ border-color:#A3D3BD; border-top-color:#1B6A45 }
+.portal-card.card-promover{ border-top:6px solid var(--promover) }
+.portal-card.card-promover:hover{ border-color:var(--promover-border); border-top-color:var(--promover) }
 
 .portal-badge{
   display:inline-flex; align-items:center; gap:.4rem;
@@ -661,13 +675,13 @@ a:hover{ color:var(--red) }
   padding:.25rem .75rem; border-radius:999px; width:fit-content; margin-bottom:1.1rem;
 }
 .portal-badge.badge-au{ background:var(--red-soft); color:var(--red-dark); border:1px solid #F5C6CE }
-.portal-badge.badge-promover{ background:#EEF7F2; color:#125234; border:1px solid #C4E4D3 }
+.portal-badge.badge-promover{ background:var(--promover-soft); color:var(--promover-text); border:1px solid var(--promover-border) }
 
 .portal-logo-wrap{
   min-height:75px; display:flex; align-items:center; margin-bottom:1.25rem;
 }
 .portal-logo-au{ max-height:2.6rem; width:auto; max-width:100% }
-.portal-logo-promover{ max-height:3.6rem; width:auto; max-width:100% }
+.portal-logo-promover{ max-height:3.2rem; width:auto; max-width:100%; object-fit:contain }
 
 .portal-card h2{ font-size:1.55rem; font-weight:800; margin:0 0 .5rem; line-height:1.25 }
 .portal-desc{ font-size:1rem; color:var(--ink-soft); line-height:1.6; margin:0 0 1.35rem }
@@ -697,12 +711,12 @@ a:hover{ color:var(--red) }
   transform:translateY(-2px); box-shadow:0 10px 24px -2px rgba(184,20,42,.45);
 }
 .portal-btn.btn-promover{
-  background:linear-gradient(180deg, #1B6A45 0%, #114C30 100%);
-  color:#fff; box-shadow:0 6px 18px -2px rgba(27,106,69,.32);
+  background:linear-gradient(180deg, #4070a4 0%, #2A527C 100%);
+  color:#fff; box-shadow:0 6px 18px -2px rgba(64,112,164,.32);
 }
 .portal-btn.btn-promover:hover{
-  background:linear-gradient(180deg, #228255 0%, #0C3E26 100%);
-  transform:translateY(-2px); box-shadow:0 10px 24px -2px rgba(27,106,69,.45);
+  background:linear-gradient(180deg, #4A7EB7 0%, #224367 100%);
+  transform:translateY(-2px); box-shadow:0 10px 24px -2px rgba(64,112,164,.45);
 }
 
 /* ---------- Institutional Sections (Promover) ---------- */
@@ -710,7 +724,7 @@ a:hover{ color:var(--red) }
 .inst-header{ max-width:760px; margin-bottom:2.75rem }
 .inst-kicker{
   display:inline-block; font-size:.85rem; font-weight:800; text-transform:uppercase;
-  letter-spacing:.05em; color:#1B6A45; margin-bottom:.5rem;
+  letter-spacing:.05em; color:var(--promover); margin-bottom:.5rem;
 }
 .inst-title{ font-size:2.2rem; font-weight:800; line-height:1.2; margin:0 0 .8rem }
 
@@ -728,9 +742,9 @@ a:hover{ color:var(--red) }
 .pillar-icon{
   display:flex; align-items:center; justify-content:center;
   width:3rem; height:3rem; border-radius:14px;
-  background:#EEF7F2; color:#1B6A45; font-size:1.4rem; font-weight:800; margin-bottom:1rem;
+  background:var(--promover-soft); color:var(--promover); font-size:1.4rem; font-weight:800; margin-bottom:1rem;
 }
-.pillar-card h3{ font-size:1.2rem; font-weight:800; color:#1B6A45; margin:0 0 .5rem }
+.pillar-card h3{ font-size:1.2rem; font-weight:800; color:var(--promover); margin:0 0 .5rem }
 .pillar-card p{ font-size:.95rem; color:var(--ink-soft); line-height:1.55; margin:0 }
 
 /* Strategy & Projects Grid */
@@ -761,7 +775,7 @@ a:hover{ color:var(--red) }
 /* Dark theme overrides for portal and Promover */
 :root[data-theme="dark"] .portal-hero{
   background:
-    radial-gradient(1000px 500px at 20% 10%, rgba(27,106,69,.18) 0%, transparent 65%),
+    radial-gradient(1000px 500px at 20% 10%, rgba(64,112,164,.20) 0%, transparent 65%),
     radial-gradient(1000px 500px at 80% 20%, rgba(255,102,124,.15) 0%, transparent 65%),
     linear-gradient(180deg, #181615 0%, #141312 100%);
 }
@@ -771,9 +785,15 @@ a:hover{ color:var(--red) }
 :root[data-theme="dark"] .portal-kicker{ background:#221F1C; border-color:var(--line); color:var(--ink) }
 :root[data-theme="dark"] .portal-pill,
 :root[data-theme="dark"] .team-chip{ background:#252320; border-color:var(--line); color:var(--ink) }
-:root[data-theme="dark"] .portal-badge.badge-promover{ background:#102D1E; color:#78D6A4; border-color:#1E5237 }
-:root[data-theme="dark"] .pillar-icon{ background:#102D1E; color:#78D6A4 }
+:root[data-theme="dark"] .portal-badge.badge-promover{ background:var(--promover-soft); color:var(--promover-dark); border-color:var(--promover-border) }
+:root[data-theme="dark"] .pillar-icon{ background:var(--promover-soft); color:var(--promover-dark) }
 :root[data-theme="dark"] .inst-kicker,
-:root[data-theme="dark"] .pillar-card h3{ color:#78D6A4 }
-:root[data-theme="dark"] .portal-logo-promover text[fill="#141414"]{ fill:#F2F0EE }
+:root[data-theme="dark"] .pillar-card h3{ color:var(--promover-dark) }
+:root[data-theme="dark"] .portal-logo-promover,
+:root[data-theme="dark"] .portal-logo-au{
+  background:#ffffff;
+  padding:.35rem .75rem;
+  border-radius:10px;
+  box-shadow:0 3px 10px rgba(0,0,0,.35);
+}
 
