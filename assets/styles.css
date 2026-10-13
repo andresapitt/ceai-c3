@@ -96,6 +96,10 @@ a:hover{ color:var(--red) }
   align-self:flex-end; margin-top:-.15rem; margin-right:.15rem;
   color:var(--red); font-size:.72rem; font-style:italic; font-weight:700; letter-spacing:.02em
 }
+.brand-title-wrap{ display:flex; align-items:center; gap:.6rem }
+.brand-promover{ font-weight:800; font-size:1.35rem; color:var(--promover); letter-spacing:-.02em }
+.brand-sep{ color:var(--line); font-size:1.2rem }
+.brand-au{ font-weight:700; font-size:.95rem; color:var(--red) }
 
 .site-nav{ display:flex; gap:.25rem; margin-left:auto; flex-wrap:nowrap }
 .site-nav a{
@@ -463,18 +467,23 @@ a:hover{ color:var(--red) }
   .header-inner{ gap:.5rem; padding:.5rem 0 }
   .brand-mark{ height:1.5rem }
   .brand-tag{ font-size:.6rem; margin-top:-.1rem }
+  .brand-title-wrap{ gap:.4rem }
+  .brand-promover{ font-size:1.18rem !important }
+  .brand-sep{ font-size:1.05rem !important }
+  .brand-au{ font-size:.84rem !important }
+  .header-tools{ order:2; margin-left:auto }
+  .nav-toggle{ order:3; display:inline-flex }
+  .nav-toggle[hidden]{ display:none !important }
   .site-nav{
     order:4; width:100%; margin-left:0; margin-top:.5rem; padding-top:.5rem;
     flex-direction:column; gap:.25rem; overflow:visible;
     border-top:1px solid var(--line);
   }
-  .site-nav[hidden]{ display:none }
+  .site-nav[hidden]{ display:none !important }
   .site-nav a{
     min-height:52px; padding:0 .75rem; font-size:1rem; white-space:normal;
     border-radius:12px; background:var(--paper-alt);
   }
-  .nav-toggle{ order:2 }
-  .header-tools{ order:3; margin-left:auto }
   .tool{ min-height:44px; min-width:44px; padding:0 .55rem; font-size:.85rem }
   .hero-inner{ padding:2.5rem 0 2.25rem }
   .hero-facts{ gap:.8rem }
@@ -482,6 +491,11 @@ a:hover{ color:var(--red) }
   .btn{ width:100% }
   .btn-sm{ width:auto }
   .cards{ grid-template-columns:1fr }
+}
+
+@media (min-width:761px){
+  .nav-toggle{ display:none !important }
+  .site-nav{ display:flex !important }
 }
 
 @media print{

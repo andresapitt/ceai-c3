@@ -25,10 +25,10 @@
 <header class="site-header">
   <div class="wrap header-inner">
     <a class="brand" href="index.html" aria-label="Asociación Civil Promover, inicio">
-      <div style="display:flex; align-items:center; gap:.6rem;">
-        <span style="font-weight:800; font-size:1.35rem; color:var(--promover); letter-spacing:-.02em;">promover</span>
-        <span style="color:var(--line); font-size:1.2rem;">|</span>
-        <span style="font-weight:700; font-size:.95rem; color:var(--red);">aulauniversitaria</span>
+      <div class="brand-title-wrap">
+        <span class="brand-promover">promover</span>
+        <span class="brand-sep">|</span>
+        <span class="brand-au">aulauniversitaria</span>
       </div>
       <span class="brand-tag" style="color:var(--ink-soft); font-weight:600;">portal institucional</span>
     </a>
@@ -350,7 +350,7 @@
 </footer>
 
 <script>
-/* Theme and text size interactions for the portal page */
+/* Theme, text size, and mobile nav interactions for the portal page */
 (function() {
   function applyTheme(dark) {
     var root = document.documentElement;
@@ -363,6 +363,76 @@
     btn.setAttribute('aria-pressed', String(dark));
     var icon = btn.querySelector('.theme-icon');
     if (icon) icon.textContent = dark ? '☀' : '☾';
+  }
+
+  function initNav() {
+    var navBtn = document.querySelector('#nav-toggle');
+    var nav = document.querySelector('#site-nav');
+    if (!navBtn || !nav) return;
+
+    var narrowQuery = window.matchMedia('(max-width: 760px)');
+    var menuOpen = false;
+
+    function syncNav() {
+      if (!narrowQuery.matches) {
+        menuOpen = false;
+        navBtn.hidden = true;
+        nav.hidden = false;
+        navBtn.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      navBtn.hidden = false;
+      nav.hidden = !menuOpen;
+      navBtn.setAttribute('aria-expanded', String(menuOpen));
+      var text = navBtn.querySelector('.nav-toggle-text');
+      if (text) text.textContent = menuOpen ? 'Cerrar' : 'Menú';
+      navBtn.setAttribute('aria-label', menuOpen ? 'Cerrar menú' : 'Abrir menú');
+    }
+
+    function setMenu(open) {
+      menuOpen = open;
+      syncNav();
+      if (open) {
+        var first = nav.querySelector('a');
+        if (first) first.focus();
+      } else {
+        navBtn.focus();
+      }
+    }
+
+    // Run sync immediately on load
+    syncNav();
+
+    if (narrowQuery.addEventListener) {
+      narrowQuery.addEventListener('change', syncNav);
+    } else if (narrowQuery.addListener) {
+      narrowQuery.addListener(syncNav);
+    }
+    window.addEventListener('resize', syncNav);
+
+    navBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      setMenu(!menuOpen);
+    });
+
+    nav.addEventListener('click', function(e) {
+      if (e.target.closest('a') && narrowQuery.matches) {
+        setMenu(false);
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && menuOpen) {
+        setMenu(false);
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!menuOpen) return;
+      if (nav.contains(e.target) || navBtn.contains(e.target)) return;
+      if (e.target.closest && e.target.closest('.header-tools')) return;
+      setMenu(false);
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function() {
@@ -383,16 +453,7 @@
       });
     }
 
-    /* Small-screen nav toggle */
-    var navBtn = document.querySelector('#nav-toggle');
-    var nav = document.querySelector('#site-nav');
-    if (navBtn && nav) {
-      navBtn.addEventListener('click', function() {
-        var open = navBtn.getAttribute('aria-expanded') === 'true';
-        navBtn.setAttribute('aria-expanded', String(!open));
-        nav.hidden = open;
-      });
-    }
+    initNav();
   });
 })();
 </script>
